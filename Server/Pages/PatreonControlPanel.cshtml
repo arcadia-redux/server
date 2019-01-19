@@ -1,0 +1,63 @@
+@page
+@using System.Net
+@using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Server.Pages
+@model Server.Pages.PatreonControlPanelModel
+
+@functions {
+        private const string UrlPattern = @"(((?<scheme>http(s)?):\/\/)?([\w-]+?\.\w+)+([a-zA-Z0-9\~\!\@\#\$\%\^\&amp;\*\(\)_\-\=\+\\\/\?\.\:\;\,]*)?)";
+
+    private string LinkifyComment(string str)
+    {
+        return Regex.Replace(str, UrlPattern, "<a href=\"$1\" target=\"_blank\">$1</a>");
+    }
+
+}
+
+@{
+    ViewBag.Title = "OTP Patreon Control Panel";
+}
+
+<h1>Add/update user</h1>
+<form method="post">
+    <input type="number" name="steamId" required placeholder="Steam ID"><br>
+    <input type="number" name="patreonLevel" required placeholder="New level"><br>
+    <input name="comment" placeholder="Comment"><br>
+    <button>Submit</button>
+</form>
+
+<hr />
+
+<h1>Existing users</h1>
+<table>
+    <thead>
+    <tr>
+        <th>
+            @Html.DisplayNameFor(model => new PatreonPlayer().SteamId)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => new PatreonPlayer().PatreonLevel)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => new PatreonPlayer().Comment)
+        </th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model.GetAllPatreons()) {
+        <tr>
+            <td>
+                @Html.DisplayFor(model => item.SteamId)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.PatreonLevel)
+            </td>
+            <td>
+                @Html.Raw(LinkifyComment(WebUtility.HtmlEncode(item.Comment)))
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
