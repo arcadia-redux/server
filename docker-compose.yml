@@ -1,7 +1,7 @@
 version: '3.3'
 
 volumes:
-  dist:
+  pgdata:
 
 services:
   database:
@@ -10,7 +10,7 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
     volumes:
-      - /data
+      - pgdata:/var/lib/postgresql/data
 
   server:
     build:
