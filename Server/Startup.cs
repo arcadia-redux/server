@@ -44,7 +44,7 @@ namespace Server
             {
                 app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"), appBuilder =>
                 {
-                    app.Use(async (context, next) =>
+                    appBuilder.Use(async (context, next) =>
                     {
                         try
                         {
@@ -70,7 +70,7 @@ namespace Server
                     });
                 });
                 app.UseWhen(context => !context.Request.Path.StartsWithSegments("/api"),
-                    appBuilder => { app.UseDeveloperExceptionPage(); });
+                    appBuilder => { appBuilder.UseDeveloperExceptionPage(); });
             }
             else
             {
