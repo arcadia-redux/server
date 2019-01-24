@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Server.Models;
 
 namespace Server.Controllers
@@ -23,11 +25,11 @@ namespace Server.Controllers
 
         [HttpPost]
         [Route("auto-pick")]
-        public ActionResult<AutoPickResponse> AutoPick(AutoPickRequest request)
+        public async Task<ActionResult<AutoPickResponse>> AutoPick(AutoPickRequest request)
         {
             var realSteamIds = request.Players.Select(ulong.Parse).ToList();
             var selectedHeroes = request.SelectedHeroes;
-            var players = _context.Players.Where(p => realSteamIds.Contains(p.SteamId))
+            var players = await _context.Players.Where(p => realSteamIds.Contains(p.SteamId))
                 .Select(p => new
                 {
                     SteamId = p.SteamId.ToString(),
@@ -48,7 +50,7 @@ namespace Server.Controllers
                         .Select(g => g.Key)
                         .ToList(),
                 })
-                .ToList();
+                .ToListAsync();
 
             return new AutoPickResponse()
             {
@@ -65,10 +67,10 @@ namespace Server.Controllers
 
         [HttpPost]
         [Route("before-match")]
-        public BeforeMatchResponse BeforeMatch(BeforeMatchRequest request)
+        public async Task<BeforeMatchResponse> BeforeMatch(BeforeMatchRequest request)
         {
             var realSteamIds = request.Players.Select(ulong.Parse).ToList();
-            var responses = _context.Players.Where(p => realSteamIds.Contains(p.SteamId))
+            var responses = await _context.Players.Where(p => realSteamIds.Contains(p.SteamId))
                 .Select(p => new
                 {
                     SteamId = p.SteamId.ToString(),
@@ -108,7 +110,7 @@ namespace Server.Controllers
                         .Select(m => m.Match.EndedAt)
                         .FirstOrDefault()
                 })
-                .ToList();
+                .ToListAsync();
 
             return new BeforeMatchResponse()
             {
@@ -178,10 +180,10 @@ namespace Server.Controllers
 
         [HttpPost]
         [Route("end-match")]
-        public ActionResult EndMatch([FromBody] EndMatchRequest request)
+        public async Task<ActionResult> EndMatch([FromBody] EndMatchRequest request)
         {
             var requestedSteamIds = request.Players.Select(p => ulong.Parse(p.SteamId)).ToList();
-            var existingPlayers = _context.Players.Where(p => requestedSteamIds.Contains(p.SteamId)).ToList();
+            var existingPlayers = await _context.Players.Where(p => requestedSteamIds.Contains(p.SteamId)).ToListAsync();
 
             var newPlayers = request.Players.Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
                 .Select(p => new Player() {SteamId = ulong.Parse(p.SteamId)})
@@ -222,9 +224,9 @@ namespace Server.Controllers
                 })
                 .ToList();
 
-            _context.AddRange(newPlayers);
-            _context.Matches.Add(match);
-            _context.SaveChanges();
+            await _context.AddRangeAsync(newPlayers);
+            await _context.Matches.AddAsync(match);
+            await _context.SaveChangesAsync();
 
             return Ok();
         }
