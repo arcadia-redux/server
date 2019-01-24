@@ -20,6 +20,7 @@ services:
       - '8000:80'
     environment:
       POSTGRES_URL: Server=database;Port=5432;Database=postgres;User Id=postgres;Password=postgres
+      PCP_KEY: ${PCP_KEY}
     restart: on-failure
     depends_on:
       - database

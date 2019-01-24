@@ -4,6 +4,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Configuration;
 using Server.Models;
 
 namespace Server.Pages
@@ -12,14 +13,17 @@ namespace Server.Pages
     public class PatreonControlPanelModel : PageModel
     {
         private readonly AppDbContext _context;
+        private readonly string _key;
 
-        public PatreonControlPanelModel(AppDbContext context)
+        public PatreonControlPanelModel(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _key = configuration["PCP_KEY"];
         }
 
-        public IActionResult OnGet()
+        public IActionResult OnGet(string key)
         {
+            if (key != _key) return Unauthorized();
             return Page();
         }
 
@@ -27,8 +31,9 @@ namespace Server.Pages
         [BindProperty]
         public SetPatreonLevelRequest Req { get; set; }
 
-        public IActionResult OnPost()
+        public IActionResult OnPost(string key)
         {
+            if (key != _key) return Unauthorized();
             if (!ModelState.IsValid) return Page();
 
             var player = _context.Players.FirstOrDefault(p => p.SteamId == Req.SteamId);
