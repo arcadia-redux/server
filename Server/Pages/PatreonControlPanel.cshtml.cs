@@ -45,7 +45,7 @@ namespace Server.Pages
             player.PatreonLevel = Req.PatreonLevel;
             player.Comment = Req.Comment;
             _context.SaveChanges();
-            return Redirect("PatreonControlPanel");
+            return Page();
         }
 
         public IEnumerable<PatreonPlayer> GetAllPatreons()
