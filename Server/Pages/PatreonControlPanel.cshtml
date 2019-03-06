@@ -55,7 +55,7 @@
                 @Html.DisplayFor(model => item.PatreonLevel)
             </td>
             <td>
-                @Html.Raw(LinkifyComment(WebUtility.HtmlEncode(item.Comment)))
+                @Html.Raw(LinkifyComment(WebUtility.HtmlEncode(item.Comment ?? "")))
             </td>
         </tr>
     }
