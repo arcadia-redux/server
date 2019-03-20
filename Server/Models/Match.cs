@@ -8,7 +8,7 @@ namespace Server.Models
 {
     public class Match
     {
-        public uint MatchId { get; set; }
+        public long MatchId { get; set; }
         public string MapName { get; set; }
         public ushort Winner { get; set; }
         public uint Duration { get; set; }
@@ -20,7 +20,7 @@ namespace Server.Models
     public class MatchPlayer
     {
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public uint MatchId { get; set; }
+        public long MatchId { get; set; }
 
         [ForeignKey("MatchId")] public Match Match { get; set; }
 

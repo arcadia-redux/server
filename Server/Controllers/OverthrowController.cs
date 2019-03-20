@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Server.Models;
 
 namespace Server.Controllers
@@ -235,7 +236,7 @@ namespace Server.Controllers
     [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     public class EndMatchRequest
     {
-        [Required] public uint MatchId { get; set; }
+        [Required] public long MatchId { get; set; }
         [Required] public string MapName { get; set; }
         [Required] public ushort Winner { get; set; }
         [Required] public uint Duration { get; set; }
