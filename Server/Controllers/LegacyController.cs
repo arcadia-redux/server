@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Server.Models;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Server.Controllers
 {
@@ -19,10 +19,10 @@ namespace Server.Controllers
         [Route("/api/same-hero-day")]
         public ActionResult<double?> GetSameHeroDayHoursLeft()
         {
-//            var time = DateTime.UtcNow;
-//            if (time.DayOfWeek != DayOfWeek.Saturday) return null;
-//            var tomorrow = time.AddDays(1).Date;
-//            return (tomorrow - time).TotalHours;
+            // var time = DateTime.UtcNow;
+            // if (time.DayOfWeek != DayOfWeek.Saturday) return null;
+            // var tomorrow = time.AddDays(1).Date;
+            // return (tomorrow - time).TotalHours;
             return null;
         }
 
@@ -41,15 +41,15 @@ namespace Server.Controllers
             }
 
             var players = _context.Players.Where(p => ids.Contains(p.SteamId))
-                .Select(p => new {p.SteamId, p.PatreonLevel})
+                .Select(p => new { p.SteamId, p.PatreonLevel })
                 .ToArray();
 
             return ids.Select(id =>
                 {
-                    if (players.All(p => p.SteamId != id)) return new LegacyPlayerResponse() {SteamId = id.ToString()};
+                    if (players.All(p => p.SteamId != id)) return new LegacyPlayerResponse() { SteamId = id.ToString() };
 
                     var o = players.First(p => p.SteamId == id);
-                    return new LegacyPlayerResponse {SteamId = id.ToString(), PatreonLevel = o.PatreonLevel};
+                    return new LegacyPlayerResponse { SteamId = id.ToString(), PatreonLevel = o.PatreonLevel };
                 })
                 .ToList();
         }

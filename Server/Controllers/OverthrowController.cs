@@ -1,13 +1,12 @@
+using JetBrains.Annotations;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Server.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Server.Models;
 
 namespace Server.Controllers
 {
@@ -86,7 +85,7 @@ namespace Server.Controllers
                     MatchesOnMap =
                         p.Matches.Where(m => m.Match.MapName == request.MapName)
                             .OrderByDescending(m => m.MatchId)
-                            .Select(m => new {IsWinner = m.Team == m.Match.Winner, m.Kills, m.Deaths, m.Assists})
+                            .Select(m => new { IsWinner = m.Team == m.Match.Winner, m.Kills, m.Deaths, m.Assists })
                             .ToList(),
                     SmartRandomHeroesMap =
                         p.Matches.Where(m => m.Match.MapName == request.MapName)
@@ -94,7 +93,7 @@ namespace Server.Controllers
                             .OrderByDescending(m => m.MatchId)
                             .Take(100)
                             .GroupBy(m => m.Hero)
-                            .Where(g => g.Count() >= (int) Math.Ceiling(p.Matches.Count() / 20.0))
+                            .Where(g => g.Count() >= (int)Math.Ceiling(p.Matches.Count() / 20.0))
                             .Select(g => g.Key)
                             .ToList(),
                     SmartRandomHeroesGlobal = p.Matches
@@ -102,7 +101,7 @@ namespace Server.Controllers
                         .OrderByDescending(m => m.MatchId)
                         .Take(100)
                         .GroupBy(m => m.Hero)
-                        .Where(g => g.Count() >= (int) Math.Ceiling(p.Matches.Count() / 20.0))
+                        .Where(g => g.Count() >= (int)Math.Ceiling(p.Matches.Count() / 20.0))
                         .Select(g => g.Key)
                         .ToList(),
                     LastSmartRandomUse = p.Matches.Where(m => m.PickReason == "smart-random")
@@ -125,7 +124,10 @@ namespace Server.Controllers
                                 SteamId = id.ToString(),
                                 Patreon = new BeforeMatchResponse.Patreon()
                                 {
-                                    Level = 0, EmblemEnabled = true, EmblemColor = "White", BootsEnabled = true,
+                                    Level = 0,
+                                    EmblemEnabled = true,
+                                    EmblemColor = "White",
+                                    BootsEnabled = true,
                                 },
                                 SmartRandomHeroesError = "no_stats",
                             };
@@ -139,14 +141,14 @@ namespace Server.Controllers
                             Patreon = response.Patreon,
                             Streak = response.MatchesOnMap.TakeWhile(w => w.IsWinner).Count(),
                             BestStreak = response.MatchesOnMap.LongestStreak(w => w.IsWinner),
-                            AverageKills = response.MatchesOnMap.Select(x => (double) x.Kills)
+                            AverageKills = response.MatchesOnMap.Select(x => (double)x.Kills)
                                 .DefaultIfEmpty()
                                 .Average(),
-                            AverageDeaths = response.MatchesOnMap.Select(x => (double) x.Deaths)
+                            AverageDeaths = response.MatchesOnMap.Select(x => (double)x.Deaths)
                                 .DefaultIfEmpty()
                                 .Average(),
                             AverageAssists =
-                                response.MatchesOnMap.Select(x => (double) x.Assists).DefaultIfEmpty().Average(),
+                                response.MatchesOnMap.Select(x => (double)x.Assists).DefaultIfEmpty().Average(),
                             Wins = response.MatchesOnMap.Count(w => w.IsWinner),
                             Loses = response.MatchesOnMap.Count(w => !w.IsWinner),
                         };
@@ -187,7 +189,7 @@ namespace Server.Controllers
             var existingPlayers = await _context.Players.Where(p => requestedSteamIds.Contains(p.SteamId)).ToListAsync();
 
             var newPlayers = request.Players.Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
-                .Select(p => new Player() {SteamId = ulong.Parse(p.SteamId)})
+                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId) })
                 .ToList();
 
             foreach (var player in request.Players.Where(p => p.PatreonUpdate != null))
@@ -210,19 +212,19 @@ namespace Server.Controllers
             };
 
             match.Players = request.Players.Select(p => new MatchPlayer
-                {
-                    Match = match,
-                    SteamId = ulong.Parse(p.SteamId),
-                    PlayerId = p.PlayerId,
-                    Team = p.Team,
-                    Hero = p.Hero,
-                    PickReason = p.PickReason,
-                    Kills = p.Kills,
-                    Deaths = p.Deaths,
-                    Assists = p.Assists,
-                    Level = p.Level,
-                    Items = p.Items,
-                })
+            {
+                Match = match,
+                SteamId = ulong.Parse(p.SteamId),
+                PlayerId = p.PlayerId,
+                Team = p.Team,
+                Hero = p.Hero,
+                PickReason = p.PickReason,
+                Kills = p.Kills,
+                Deaths = p.Deaths,
+                Assists = p.Assists,
+                Level = p.Level,
+                Items = p.Items,
+            })
                 .ToList();
 
             await _context.AddRangeAsync(newPlayers);

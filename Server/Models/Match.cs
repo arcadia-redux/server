@@ -1,8 +1,8 @@
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using JetBrains.Annotations;
 
 namespace Server.Models
 {

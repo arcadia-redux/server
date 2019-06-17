@@ -17,7 +17,7 @@ namespace Server.Models
         {
             base.OnModelCreating(builder);
 
-            builder.Entity<MatchPlayer>().HasKey(mp => new {mp.MatchId, mp.SteamId});
+            builder.Entity<MatchPlayer>().HasKey(mp => new { mp.MatchId, mp.SteamId });
         }
     }
 }
