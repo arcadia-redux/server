@@ -1,9 +1,7 @@
-using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Server.Models
 {
-    [UsedImplicitly()]
     public class AppDbContext : DbContext
     {
         public AppDbContext(DbContextOptions options) : base(options)

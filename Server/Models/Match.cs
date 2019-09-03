@@ -1,4 +1,3 @@
-using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -40,7 +39,6 @@ namespace Server.Models
         public List<MatchPlayerItem> Items { get; set; }
     }
 
-    [UsedImplicitly]
     public class MatchPlayerItem
     {
         // TODO: Use composite key

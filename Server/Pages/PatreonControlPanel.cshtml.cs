@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
@@ -9,7 +8,6 @@ using Server.Models;
 
 namespace Server.Pages
 {
-    [UsedImplicitly]
     public class PatreonControlPanelModel : PageModel
     {
         private readonly AppDbContext _context;
@@ -27,7 +25,6 @@ namespace Server.Pages
             return Page();
         }
 
-        [UsedImplicitly]
         [BindProperty]
         public SetPatreonLevelRequest Req { get; set; }
 
@@ -51,7 +48,7 @@ namespace Server.Pages
         public IEnumerable<PatreonPlayer> GetAllPatreons()
         {
             return _context.Players.Where(p => p.PatreonLevel > 0)
-                .Select(p => new PatreonPlayer() {SteamId = p.SteamId, PatreonLevel = p.PatreonLevel, Comment = p.Comment})
+                .Select(p => new PatreonPlayer() { SteamId = p.SteamId, PatreonLevel = p.PatreonLevel, Comment = p.Comment })
                 .ToArray();
         }
     }
@@ -63,7 +60,6 @@ namespace Server.Pages
         public string Comment { get; set; }
     }
 
-    [UsedImplicitly]
     public class SetPatreonLevelRequest
     {
         [DisplayName("Steam ID")]
