@@ -15,7 +15,6 @@ namespace Server.Controllers
             _context = context;
         }
 
-
         [Route("/api/same-hero-day")]
         public ActionResult<double?> GetSameHeroDayHoursLeft()
         {

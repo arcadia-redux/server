@@ -1,4 +1,3 @@
-using JetBrains.Annotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Server.Models;
@@ -82,20 +81,20 @@ namespace Server.Controllers
                             EmblemColor = p.PatreonEmblemColor ?? "White",
                             BootsEnabled = p.PatreonBootsEnabled.GetValueOrDefault(true),
                         },
-                    MatchesOnMap =
-                        p.Matches.Where(m => m.Match.MapName == request.MapName)
-                            .OrderByDescending(m => m.MatchId)
-                            .Select(m => new { IsWinner = m.Team == m.Match.Winner, m.Kills, m.Deaths, m.Assists })
-                            .ToList(),
-                    SmartRandomHeroesMap =
-                        p.Matches.Where(m => m.Match.MapName == request.MapName)
-                            .Where(m => m.PickReason == "pick")
-                            .OrderByDescending(m => m.MatchId)
-                            .Take(100)
-                            .GroupBy(m => m.Hero)
-                            .Where(g => g.Count() >= (int)Math.Ceiling(p.Matches.Count() / 20.0))
-                            .Select(g => g.Key)
-                            .ToList(),
+                    MatchesOnMap = p.Matches
+                        .Where(m => m.Match.MapName == request.MapName)
+                        .OrderByDescending(m => m.MatchId)
+                        .Select(m => new { IsWinner = m.Team == m.Match.Winner, m.Kills, m.Deaths, m.Assists })
+                        .ToList(),
+                    SmartRandomHeroesMap = p.Matches
+                        .Where(m => m.Match.MapName == request.MapName)
+                        .Where(m => m.PickReason == "pick")
+                        .OrderByDescending(m => m.MatchId)
+                        .Take(100)
+                        .GroupBy(m => m.Hero)
+                        .Where(g => g.Count() >= (int)Math.Ceiling(p.Matches.Count() / 20.0))
+                        .Select(g => g.Key)
+                        .ToList(),
                     SmartRandomHeroesGlobal = p.Matches
                         .Where(m => m.PickReason == "pick")
                         .OrderByDescending(m => m.MatchId)
@@ -104,7 +103,8 @@ namespace Server.Controllers
                         .Where(g => g.Count() >= (int)Math.Ceiling(p.Matches.Count() / 20.0))
                         .Select(g => g.Key)
                         .ToList(),
-                    LastSmartRandomUse = p.Matches.Where(m => m.PickReason == "smart-random")
+                    LastSmartRandomUse = p.Matches
+                        .Where(m => m.PickReason == "smart-random")
                         .OrderByDescending(m => m.Match.EndedAt)
                         .Take(1)
                         .Select(m => m.Match.EndedAt)
@@ -235,7 +235,6 @@ namespace Server.Controllers
         }
     }
 
-    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     public class EndMatchRequest
     {
         [Required] public long MatchId { get; set; }
@@ -245,7 +244,6 @@ namespace Server.Controllers
 
         [Required] public IEnumerable<Player> Players { get; set; }
 
-        [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
         public class Player
         {
             [Required] public ushort PlayerId { get; set; }
@@ -261,7 +259,6 @@ namespace Server.Controllers
             public PatreonUpdate PatreonUpdate { get; set; }
         }
 
-        [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
         public class PatreonUpdate
         {
             public bool EmblemEnabled { get; set; }
@@ -270,7 +267,6 @@ namespace Server.Controllers
         }
     }
 
-    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     public class AutoPickRequest
     {
         public string MapName { get; set; }
@@ -278,12 +274,10 @@ namespace Server.Controllers
         public List<string> Players { get; set; }
     }
 
-    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     public class AutoPickResponse
     {
         public IEnumerable<Player> Players { get; set; }
 
-        [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
         public class Player
         {
             public string SteamId { get; set; }
@@ -291,19 +285,16 @@ namespace Server.Controllers
         }
     }
 
-    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     public class BeforeMatchRequest
     {
         public string MapName { get; set; }
         public List<string> Players { get; set; }
     }
 
-    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     public class BeforeMatchResponse
     {
         public IEnumerable<Player> Players { get; set; }
 
-        [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
         public class Player
         {
             public string SteamId { get; set; }
@@ -323,7 +314,6 @@ namespace Server.Controllers
             public int Loses { get; set; }
         }
 
-        [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
         public class Patreon
         {
             public ushort Level { get; set; }
