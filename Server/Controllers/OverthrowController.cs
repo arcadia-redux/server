@@ -28,7 +28,8 @@ namespace Server.Controllers
         {
             var realSteamIds = request.Players.Select(ulong.Parse).ToList();
             var selectedHeroes = request.SelectedHeroes;
-            var players = await _context.Players.Where(p => realSteamIds.Contains(p.SteamId))
+            var players = await _context.Players
+                .Where(p => realSteamIds.Contains(p.SteamId))
                 .Select(p => new
                 {
                     SteamId = p.SteamId.ToString(),
@@ -114,7 +115,8 @@ namespace Server.Controllers
 
             return new BeforeMatchResponse()
             {
-                Players = request.Players.Select(id =>
+                Players = request.Players
+                    .Select(id =>
                     {
                         var response = responses.FirstOrDefault(p => p.SteamId == id);
                         if (response == null)
@@ -186,20 +188,27 @@ namespace Server.Controllers
         public async Task<ActionResult> EndMatch([FromBody] EndMatchRequest request)
         {
             var requestedSteamIds = request.Players.Select(p => ulong.Parse(p.SteamId)).ToList();
-            var existingPlayers = await _context.Players.Where(p => requestedSteamIds.Contains(p.SteamId)).ToListAsync();
 
-            var newPlayers = request.Players.Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
+            var existingPlayers = await _context.Players
+                .Where(p => requestedSteamIds.Contains(p.SteamId))
+                .ToListAsync();
+
+            var newPlayers = request.Players
+                .Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
                 .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId) })
                 .ToList();
 
-            foreach (var player in request.Players.Where(p => p.PatreonUpdate != null))
+            foreach (var playerUpdate in request.Players.Where(p => p.PatreonUpdate != null))
             {
-                var existingPlayer = existingPlayers.FirstOrDefault(p => p.SteamId.ToString() == player.SteamId) ??
-                                     newPlayers.FirstOrDefault(p => p.SteamId.ToString() == player.SteamId);
-                if (existingPlayer == null) continue;
-                existingPlayer.PatreonBootsEnabled = player.PatreonUpdate.BootsEnabled;
-                existingPlayer.PatreonEmblemEnabled = player.PatreonUpdate.EmblemEnabled;
-                existingPlayer.PatreonEmblemColor = player.PatreonUpdate.EmblemColor;
+                var player =
+                    existingPlayers.FirstOrDefault(p => p.SteamId.ToString() == playerUpdate.SteamId) ??
+                    newPlayers.FirstOrDefault(p => p.SteamId.ToString() == playerUpdate.SteamId);
+                // TODO: Shouldn't be the case ever?
+                if (player == null) continue;
+
+                player.PatreonBootsEnabled = playerUpdate.PatreonUpdate.BootsEnabled;
+                player.PatreonEmblemEnabled = playerUpdate.PatreonUpdate.EmblemEnabled;
+                player.PatreonEmblemColor = playerUpdate.PatreonUpdate.EmblemColor;
             }
 
             var match = new Match
@@ -211,24 +220,25 @@ namespace Server.Controllers
                 EndedAt = DateTime.UtcNow
             };
 
-            match.Players = request.Players.Select(p => new MatchPlayer
-            {
-                Match = match,
-                SteamId = ulong.Parse(p.SteamId),
-                PlayerId = p.PlayerId,
-                Team = p.Team,
-                Hero = p.Hero,
-                PickReason = p.PickReason,
-                Kills = p.Kills,
-                Deaths = p.Deaths,
-                Assists = p.Assists,
-                Level = p.Level,
-                Items = p.Items,
-            })
+            match.Players = request.Players
+                .Select(p => new MatchPlayer
+                {
+                    Match = match,
+                    SteamId = ulong.Parse(p.SteamId),
+                    PlayerId = p.PlayerId,
+                    Team = p.Team,
+                    Hero = p.Hero,
+                    PickReason = p.PickReason,
+                    Kills = p.Kills,
+                    Deaths = p.Deaths,
+                    Assists = p.Assists,
+                    Level = p.Level,
+                    Items = p.Items,
+                })
                 .ToList();
 
-            await _context.AddRangeAsync(newPlayers);
-            await _context.Matches.AddAsync(match);
+            _context.AddRange(newPlayers);
+            _context.Matches.Add(match);
             await _context.SaveChangesAsync();
 
             return Ok();
