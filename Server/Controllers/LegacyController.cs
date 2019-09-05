@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Server.Models;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Server.Controllers
 {
@@ -24,39 +22,5 @@ namespace Server.Controllers
             // return (tomorrow - time).TotalHours;
             return null;
         }
-
-        [HttpGet("/api/players")]
-        public ActionResult<List<LegacyPlayerResponse>> GetAll([FromQuery(Name = "id")] ulong[] ids,
-            [FromQuery(Name = "map")] string mapName)
-        {
-            if (ids.GroupBy(id => id).Any(id => id.Count() > 1))
-            {
-                return BadRequest("Duplicates in ids are not allowed");
-            }
-
-            if (ids.Length > 24)
-            {
-                return BadRequest("Too much ids requested");
-            }
-
-            var players = _context.Players.Where(p => ids.Contains(p.SteamId))
-                .Select(p => new { p.SteamId, p.PatreonLevel })
-                .ToArray();
-
-            return ids.Select(id =>
-                {
-                    if (players.All(p => p.SteamId != id)) return new LegacyPlayerResponse() { SteamId = id.ToString() };
-
-                    var o = players.First(p => p.SteamId == id);
-                    return new LegacyPlayerResponse { SteamId = id.ToString(), PatreonLevel = o.PatreonLevel };
-                })
-                .ToList();
-        }
-    }
-
-    public class LegacyPlayerResponse
-    {
-        public string SteamId { get; set; }
-        public ushort PatreonLevel { get; set; }
     }
 }
