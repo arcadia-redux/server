@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Server.Models;
 using System;
@@ -9,16 +10,14 @@ using System.Threading.Tasks;
 
 namespace Server.Controllers
 {
-    // TODO: Remove it
-    [Route("api/vscripts")]
-    [Route("api/[controller]")]
-    [ApiController]
     [Authorize]
-    public class OverthrowController : ControllerBase
+    [ApiController]
+    [Route("api/[controller]")]
+    public class MatchController : ControllerBase
     {
         private readonly AppDbContext _context;
 
-        public OverthrowController(AppDbContext context)
+        public MatchController(AppDbContext context)
         {
             _context = context;
         }
@@ -67,11 +66,12 @@ namespace Server.Controllers
         }
 
         [HttpPost]
-        [Route("before-match")]
-        public async Task<BeforeMatchResponse> BeforeMatch(BeforeMatchRequest request)
+        [Route("before")]
+        public async Task<BeforeMatchResponse> Before(BeforeMatchRequest request)
         {
             var realSteamIds = request.Players.Select(ulong.Parse).ToList();
-            var responses = await _context.Players.Where(p => realSteamIds.Contains(p.SteamId))
+            var responses = await _context.Players
+                .Where(p => realSteamIds.Contains(p.SteamId))
                 .Select(p => new
                 {
                     SteamId = p.SteamId.ToString(),
@@ -79,9 +79,9 @@ namespace Server.Controllers
                         new BeforeMatchResponse.Patreon()
                         {
                             Level = p.PatreonLevel,
-                            EmblemEnabled = p.PatreonEmblemEnabled.GetValueOrDefault(true),
+                            EmblemEnabled = p.PatreonEmblemEnabled ?? true,
                             EmblemColor = p.PatreonEmblemColor ?? "White",
-                            BootsEnabled = p.PatreonBootsEnabled.GetValueOrDefault(true),
+                            BootsEnabled = p.PatreonBootsEnabled ?? true,
                         },
                     MatchesOnMap = p.Matches
                         .Where(m => m.Match.MapName == request.MapName)
@@ -185,8 +185,8 @@ namespace Server.Controllers
         }
 
         [HttpPost]
-        [Route("end-match")]
-        public async Task<ActionResult> EndMatch([FromBody] EndMatchRequest request)
+        [Route("after")]
+        public async Task<ActionResult> After([FromBody] AfterMatchRequest request)
         {
             var requestedSteamIds = request.Players.Select(p => ulong.Parse(p.SteamId)).ToList();
 
@@ -246,7 +246,7 @@ namespace Server.Controllers
         }
     }
 
-    public class EndMatchRequest
+    public class AfterMatchRequest
     {
         [Required] public long MatchId { get; set; }
         [Required] public string MapName { get; set; }
@@ -312,17 +312,15 @@ namespace Server.Controllers
             public List<string> SmartRandomHeroes { get; set; }
             public string SmartRandomHeroesError { get; set; }
             public int Streak { get; set; }
-
             public int BestStreak { get; set; }
-
-            // TODO: Remove it
-            public ushort PatreonLevel { get; set; }
-            public Patreon Patreon { get; set; }
             public double AverageKills { get; set; }
             public double AverageDeaths { get; set; }
             public double AverageAssists { get; set; }
             public int Wins { get; set; }
             public int Loses { get; set; }
+            // TODO: Remove it
+            public ushort PatreonLevel { get; set; }
+            public Patreon Patreon { get; set; }
         }
 
         public class Patreon
