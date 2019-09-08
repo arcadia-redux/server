@@ -1,22 +1,23 @@
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Server.Models;
 
 namespace Server.Pages
 {
-    public class PatreonControlPanelModel : PageModel
+    public class SupportersAdminPanelModel : PageModel
     {
         private readonly AppDbContext _context;
         private readonly string _key;
 
-        public PatreonControlPanelModel(AppDbContext context, IConfiguration configuration)
+        public SupportersAdminPanelModel(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
-            _key = configuration["PCP_KEY"];
+            _key = configuration["SupportersAdminPanelKey"];
         }
 
         public IActionResult OnGet(string key)
@@ -45,19 +46,25 @@ namespace Server.Pages
             return Page();
         }
 
-        public IEnumerable<PatreonPlayer> GetAllPatreons()
+        public async Task<PatreonPlayer[]> GetAllSupporters()
         {
-            return _context.Players.Where(p => p.PatreonLevel > 0)
-                .Select(p => new PatreonPlayer() { SteamId = p.SteamId, PatreonLevel = p.PatreonLevel, Comment = p.Comment })
-                .ToArray();
+            return await _context.Players
+                .Where(p => p.PatreonLevel > 0)
+                .Select(p => new PatreonPlayer()
+                {
+                    SteamId = p.SteamId,
+                    Comment = p.Comment,
+                    PatreonLevel = p.PatreonLevel,
+                })
+                .ToArrayAsync();
         }
     }
 
     public class PatreonPlayer
     {
         public ulong SteamId { get; set; }
-        public ushort PatreonLevel { get; set; }
         public string Comment { get; set; }
+        public ushort PatreonLevel { get; set; }
     }
 
     public class SetPatreonLevelRequest

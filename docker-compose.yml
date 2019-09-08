@@ -19,7 +19,7 @@ services:
     ports:
       - '8000:80'
     environment:
-      PCP_KEY: ${PCP_KEY}
+      SupportersAdminPanelKey: ${SupportersAdminPanelKey}
       DedicatedServerKeys: ${DedicatedServerKeys}
     restart: on-failure
     depends_on:
