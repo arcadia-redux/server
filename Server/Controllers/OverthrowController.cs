@@ -13,6 +13,7 @@ namespace Server.Controllers
     [Route("api/vscripts")]
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class OverthrowController : ControllerBase
     {
         private readonly AppDbContext _context;

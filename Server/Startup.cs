@@ -30,6 +30,13 @@ namespace Server
                 if (HostingEnvironment.IsDevelopment()) options.EnableSensitiveDataLogging();
             });
 
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = DedicatedServerKeyAuthenticationOptions.DefaultScheme;
+                options.DefaultAuthenticateScheme = DedicatedServerKeyAuthenticationOptions.DefaultScheme;
+                options.DefaultChallengeScheme = DedicatedServerKeyAuthenticationOptions.DefaultScheme;
+            }).AddScheme<DedicatedServerKeyAuthenticationOptions, DedicatedServerKeyAuthenticationHandler>(DedicatedServerKeyAuthenticationOptions.DefaultScheme, options => { });
+
             services.AddControllers();
             services.AddRazorPages()
                 .AddRazorPagesOptions(o => o.Conventions.ConfigureFilter(new IgnoreAntiforgeryTokenAttribute()));
@@ -55,6 +62,10 @@ namespace Server
 
             app.UseStaticFiles();
             app.UseRouting();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
