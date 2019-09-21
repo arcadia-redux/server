@@ -21,6 +21,9 @@ services:
     environment:
       SupportersAdminPanelKey: ${SupportersAdminPanelKey}
       DedicatedServerKeys: ${DedicatedServerKeys}
+      VIRTUAL_HOST: ${VIRTUAL_HOST}
+      StripeApiKey: ${StripeApiKey}
+      StripeSignature: ${StripeSignature}
     restart: on-failure
     depends_on:
       - database

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Server.Models
 {
@@ -10,12 +11,30 @@ namespace Server.Models
 
         public DbSet<Player> Players { get; set; }
         public DbSet<Match> Matches { get; set; }
+        public DbSet<MatchEvent> MatchEvents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            builder.Entity<MatchPlayer>().HasKey(mp => new { mp.MatchId, mp.SteamId });
+            var jsonSerializerOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            builder.Entity<Match>()
+                .Property(b => b.CustomGame)
+                .HasConversion<string>();
+
+            builder.Entity<MatchPlayer>()
+                .HasKey(mp => new { mp.MatchId, mp.SteamId });
+
+            builder.Entity<MatchEvent>()
+                .Property(b => b.Body)
+                .HasConversion(
+                    b => JsonSerializer.Serialize(b, jsonSerializerOptions),
+                    b => JsonSerializer.Deserialize<object>(b, jsonSerializerOptions)
+                );
         }
     }
 }

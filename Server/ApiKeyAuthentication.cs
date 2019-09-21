@@ -48,8 +48,8 @@ namespace Server
             if (!_dedicatedServerKeys.Contains(providedApiKey))
             {
                 // TODO: Temporary pass to collect keys
-                // return Task.FromResult(AuthenticateResult.Fail("Invalid Dedicated Server Key provided."));
-                Logger.LogCritical($"Authentication attempt with invalid key: {providedApiKey}");
+                // Logger.LogCritical($"Authentication attempt with invalid key: {providedApiKey}");
+                return Task.FromResult(AuthenticateResult.Fail("Invalid Dedicated Server Key provided."));
             }
 
             var identity = new ClaimsIdentity(Options.AuthenticationType);

@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -55,6 +56,7 @@ namespace Server.Pages
                     SteamId = p.SteamId,
                     Comment = p.Comment,
                     PatreonLevel = p.PatreonLevel,
+                    PatreonEndDate = p.PatreonEndDate,
                 })
                 .ToArrayAsync();
         }
@@ -65,6 +67,7 @@ namespace Server.Pages
         public ulong SteamId { get; set; }
         public string Comment { get; set; }
         public ushort PatreonLevel { get; set; }
+        public DateTime? PatreonEndDate { get; set; }
     }
 
     public class SetPatreonLevelRequest

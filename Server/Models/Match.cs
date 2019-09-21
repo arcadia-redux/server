@@ -2,13 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Server.Models
 {
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum CustomGame
+    {
+        Overthrow,
+        Dota12v12,
+    }
+
     public class Match
     {
         public long MatchId { get; set; }
         public string MapName { get; set; }
+        public CustomGame CustomGame { get; set; }
         public ushort Winner { get; set; }
         public uint Duration { get; set; }
         public DateTime EndedAt { get; set; }

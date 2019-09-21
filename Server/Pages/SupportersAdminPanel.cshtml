@@ -41,6 +41,9 @@
         <th>
             @Html.DisplayNameFor(model => new PatreonPlayer().Comment)
         </th>
+        <th>
+            @Html.DisplayNameFor(model => new PatreonPlayer().PatreonEndDate)
+        </th>
     </tr>
     </thead>
     <tbody>
@@ -54,6 +57,16 @@
             </td>
             <td>
                 @Html.Raw(LinkifyComment(WebUtility.HtmlEncode(item.Comment ?? "")))
+            </td>
+            <td>
+                @if (item.PatreonEndDate != null)
+                {
+                    @Html.DisplayFor(model => item.PatreonEndDate)
+                }
+                else
+                {
+                    @("(managed manually)")
+                }
             </td>
         </tr>
     }

@@ -1,0 +1,53 @@
+﻿@page
+@using QRCoder
+@using System.Drawing.Imaging;
+@using System.IO;
+@{
+    ViewData["Title"] = "wechat";
+
+    var qrUrl = Request.Query["qr"][0];
+    var qrGenerator = new QRCodeGenerator();
+    var qrCodeData = qrGenerator.CreateQrCode(qrUrl, QRCodeGenerator.ECCLevel.Q);
+    var qrCode = new QRCode(qrCodeData);
+    var qrCodeImage = qrCode.GetGraphic(6);
+
+    var qrCodeStream = new MemoryStream();
+    qrCodeImage.Save(qrCodeStream, ImageFormat.Png);
+    var base64 = Convert.ToBase64String(qrCodeStream.ToArray());
+
+    var imgSrc = $"data:image/png;base64,{base64}";
+}
+
+<style>
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+    }
+
+    body {
+        display: flex;
+        flex-flow: column;
+        background-color: white;
+    }
+
+    .wechat-pay-logo {
+        object-fit: contain;
+        height: 16%;
+        margin-top: 20px;
+    }
+
+    .qr-code {
+        flex: 1;
+        object-fit: contain;
+        width: auto;
+        margin: 0 10%;
+        margin-bottom: 5%;
+    }
+</style>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<img class="wechat-pay-logo" src="~/wechat-pay-logo.png">
+<img class="qr-code" src="@imgSrc">
