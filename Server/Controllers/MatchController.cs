@@ -87,6 +87,7 @@ namespace Server.Controllers
                             EmblemEnabled = p.PatreonEmblemEnabled ?? true,
                             EmblemColor = p.PatreonEmblemColor ?? "White",
                             BootsEnabled = p.PatreonBootsEnabled ?? true,
+                            ChatWheelFavorites = p.PatreonChatWheelFavorites ?? new List<int>(),
                         },
                     MatchesOnMap = p.Matches
                         .Where(m => m.Match.CustomGame == customGame)
@@ -140,6 +141,7 @@ namespace Server.Controllers
                                     EmblemEnabled = true,
                                     EmblemColor = "White",
                                     BootsEnabled = true,
+                                    ChatWheelFavorites = new List<int>(),
                                 },
                                 SmartRandomHeroesError = "no_stats",
                             };
@@ -226,6 +228,7 @@ namespace Server.Controllers
                 player.PatreonBootsEnabled = playerUpdate.PatreonUpdate.BootsEnabled;
                 player.PatreonEmblemEnabled = playerUpdate.PatreonUpdate.EmblemEnabled;
                 player.PatreonEmblemColor = playerUpdate.PatreonUpdate.EmblemColor;
+                player.PatreonChatWheelFavorites = playerUpdate.PatreonUpdate.ChatWheelFavorites;
             }
 
             var match = new Match
@@ -306,6 +309,8 @@ namespace Server.Controllers
             public bool EmblemEnabled { get; set; }
             public string EmblemColor { get; set; }
             public bool BootsEnabled { get; set; }
+            // TODO: Required?
+            public List<int>? ChatWheelFavorites { get; set; }
         }
     }
 
@@ -360,6 +365,7 @@ namespace Server.Controllers
             public bool EmblemEnabled { get; set; }
             public string EmblemColor { get; set; }
             public bool BootsEnabled { get; set; }
+            public List<int> ChatWheelFavorites { get; set; }
         }
     }
 

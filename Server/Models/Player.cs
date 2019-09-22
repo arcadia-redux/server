@@ -16,5 +16,6 @@ namespace Server.Models
         public bool? PatreonEmblemEnabled { get; set; }
         public string? PatreonEmblemColor { get; set; }
         public bool? PatreonBootsEnabled { get; set; }
+        public List<int>? PatreonChatWheelFavorites { get; set; }
     }
 }
