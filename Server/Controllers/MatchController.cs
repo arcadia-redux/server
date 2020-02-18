@@ -45,7 +45,8 @@ namespace Server.Controllers
                         .Take(10)
                         .Select(g => g.Key)
                         .ToList(),
-                    HeroesGlobal = p.Matches.OrderByDescending(m => m.MatchId)
+                    HeroesGlobal = p.Matches
+                        .OrderByDescending(m => m.MatchId)
                         .Take(100)
                         .GroupBy(m => m.Hero)
                         .OrderByDescending(g => g.Count())
@@ -73,6 +74,8 @@ namespace Server.Controllers
         public async Task<BeforeMatchResponse> Before(BeforeMatchRequest request)
         {
             var customGame = request.CustomGame.Value;
+            var mapName = request.MapName;
+
             var realSteamIds = request.Players.Select(ulong.Parse).ToList();
             var responses = await _context.Players
                 .Where(p => realSteamIds.Contains(p.SteamId))
@@ -91,28 +94,29 @@ namespace Server.Controllers
                         },
                     MatchesOnMap = p.Matches
                         .Where(m => m.Match.CustomGame == customGame)
-                        .Where(m => m.Match.MapName == request.MapName)
+                        .Where(m => m.Match.MapName == mapName)
                         .OrderByDescending(m => m.MatchId)
                         .Select(m => new { IsWinner = m.Team == m.Match.Winner, m.Kills, m.Deaths, m.Assists })
                         .ToList(),
                     SmartRandomHeroesMap = p.Matches
-                        .Where(m => m.Match.CustomGame == customGame)
-                        .Where(m => m.Match.MapName == request.MapName)
-                        .Where(m => m.PickReason == "pick")
+                        .Where(m => m.Match.CustomGame == customGame && m.Match.MapName == mapName && m.PickReason == "pick")
                         .OrderByDescending(m => m.MatchId)
                         .Take(100)
+
                         .GroupBy(m => m.Hero)
-                        .Where(g => g.Count() >= (int)Math.Ceiling(p.Matches.Count() / 20.0))
+                        .Where(g => g.Count() >= (int)Math.Ceiling(Math.Min(p.Matches.Count(m => m.Match.CustomGame == customGame && m.Match.MapName == mapName && m.PickReason == "pick"), 100) / 20.0))
                         .Select(g => g.Key)
+
                         .ToList(),
                     SmartRandomHeroesGlobal = p.Matches
-                        .Where(m => m.Match.CustomGame == customGame)
-                        .Where(m => m.PickReason == "pick")
+                        .Where(m => m.Match.CustomGame == customGame && m.PickReason == "pick")
                         .OrderByDescending(m => m.MatchId)
                         .Take(100)
+
                         .GroupBy(m => m.Hero)
-                        .Where(g => g.Count() >= (int)Math.Ceiling(p.Matches.Count() / 20.0))
+                        .Where(g => g.Count() >= (int)Math.Ceiling(Math.Min(p.Matches.Count(m => m.Match.CustomGame == customGame && m.PickReason == "pick"), 100) / 20.0))
                         .Select(g => g.Key)
+
                         .ToList(),
                     LastSmartRandomUse = p.Matches
                         .Where(m => m.Match.CustomGame == customGame)
