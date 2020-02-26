@@ -258,7 +258,6 @@ namespace Server.Controllers
                     Deaths = p.Deaths,
                     Assists = p.Assists,
                     Level = p.Level,
-                    Items = p.Items,
                 })
                 .ToList();
 
@@ -304,7 +303,8 @@ namespace Server.Controllers
             [Required] public uint Deaths { get; set; }
             [Required] public uint Assists { get; set; }
             [Required] public uint Level { get; set; }
-            [Required] public List<MatchPlayerItem> Items { get; set; }
+            // TODO: We don't store it anymore
+            [Required] public List<object> Items { get; set; }
             public PatreonUpdate PatreonUpdate { get; set; }
         }
 

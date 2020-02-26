@@ -45,15 +45,5 @@ namespace Server.Models
         public uint Deaths { get; set; }
         public uint Assists { get; set; }
         public uint Level { get; set; }
-        public List<MatchPlayerItem> Items { get; set; }
-    }
-
-    public class MatchPlayerItem
-    {
-        // TODO: Use composite key
-        public long Id { get; set; }
-        [Required] public ushort Slot { get; set; }
-        [Required] public string Name { get; set; }
-        [Required] public uint Charges { get; set; }
     }
 }
