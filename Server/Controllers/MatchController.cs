@@ -178,26 +178,17 @@ namespace Server.Controllers
                             Loses = response.MatchesOnMap.Count(w => !w.IsWinner),
                         };
 
-                        var canUseSmartRandom = response.Patreon.Level >= 1 ||
-                                                (DateTime.UtcNow - response.LastSmartRandomUse).TotalDays >= 1;
-                        if (canUseSmartRandom)
-                        {
-                            var heroes = response.SmartRandomHeroesMap.Count >= 5
-                                ? response.SmartRandomHeroesMap
-                                : response.SmartRandomHeroesGlobal;
+                        var heroes = response.SmartRandomHeroesMap.Count >= 5
+                            ? response.SmartRandomHeroesMap
+                            : response.SmartRandomHeroesGlobal;
 
-                            if (heroes.Count >= 3)
-                            {
-                                player.SmartRandomHeroes = heroes;
-                            }
-                            else
-                            {
-                                player.SmartRandomHeroesError = "no_stats";
-                            }
+                        if (heroes.Count >= 3)
+                        {
+                            player.SmartRandomHeroes = heroes;
                         }
                         else
                         {
-                            player.SmartRandomHeroesError = "cooldown";
+                            player.SmartRandomHeroesError = "no_stats";
                         }
 
                         return player;
