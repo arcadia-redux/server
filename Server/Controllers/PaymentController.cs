@@ -27,6 +27,7 @@ namespace Server.Controllers
         [Required] public CreatePaymentProvider Provider { get; set; }
         [Required] public PaymentKind PaymentKind { get; set; }
         [Required] public string SteamId { get; set; }
+        public string? PayerSteamId { get; set; }
         [Required] public long MatchId { get; set; }
     }
 
@@ -58,11 +59,17 @@ namespace Server.Controllers
         public async Task<CreatePaymentResponse> Create([FromBody] CreatePaymentRequest request)
         {
             var steamId = ulong.Parse(request.SteamId);
+            ulong payerSteamId = steamId;
+            if (request.PayerSteamId != null)
+            {
+                payerSteamId = ulong.Parse(request.PayerSteamId);
+            }
+
             var matchId = request.MatchId;
             var url = request.Provider switch
             {
-                CreatePaymentProvider.Alipay => await _stripeService.CreateAlipayRequest(steamId, matchId, request.PaymentKind),
-                CreatePaymentProvider.WeChat => await _stripeService.CreateWeChatRequest(steamId, matchId, request.PaymentKind),
+                CreatePaymentProvider.Alipay => await _stripeService.CreateAlipayRequest(steamId, payerSteamId, matchId, request.PaymentKind),
+                CreatePaymentProvider.WeChat => await _stripeService.CreateWeChatRequest(steamId, payerSteamId, matchId, request.PaymentKind),
                 _ => throw new Exception($"Unknown provider kind: {request.Provider}"),
             };
 

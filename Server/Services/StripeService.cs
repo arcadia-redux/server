@@ -40,9 +40,9 @@ namespace Server.Services
             _chargeService = new ChargeService();
         }
 
-        public async Task<string> CreateWeChatRequest(ulong steamId, long matchId, PaymentKind paymentKind)
+        public async Task<string> CreateWeChatRequest(ulong steamId, ulong payerSteamId, long matchId, PaymentKind paymentKind)
         {
-            var sourceCreateOptions = await CreateStripeSourceCreateOptions(steamId, matchId, paymentKind);
+            var sourceCreateOptions = await CreateStripeSourceCreateOptions(steamId, payerSteamId, matchId, paymentKind);
             sourceCreateOptions.Type = "wechat";
             var source = await _sourceService.CreateAsync(sourceCreateOptions);
 
@@ -54,16 +54,16 @@ namespace Server.Services
             return uri;
         }
 
-        public async Task<string> CreateAlipayRequest(ulong steamId, long matchId, PaymentKind paymentKind)
+        public async Task<string> CreateAlipayRequest(ulong steamId, ulong payerSteamId, long matchId, PaymentKind paymentKind)
         {
-            var sourceCreateOptions = await CreateStripeSourceCreateOptions(steamId, matchId, paymentKind);
+            var sourceCreateOptions = await CreateStripeSourceCreateOptions(steamId, payerSteamId, matchId, paymentKind);
             sourceCreateOptions.Type = "alipay";
             var source = await _sourceService.CreateAsync(sourceCreateOptions);
 
             return source.Redirect.Url;
         }
 
-        private async Task<SourceCreateOptions> CreateStripeSourceCreateOptions(ulong steamId, long matchId, PaymentKind paymentKind)
+        private async Task<SourceCreateOptions> CreateStripeSourceCreateOptions(ulong steamId, ulong payerSteamId, long matchId, PaymentKind paymentKind)
         {
             var player = await _context.Players.FindAsync(steamId);
             if (player == null)
@@ -112,6 +112,7 @@ namespace Server.Services
                 Metadata = new Dictionary<string, string>
                 {
                     ["steamId"] = steamId.ToString(),
+                    ["payerSteamId"] = payerSteamId.ToString(),
                     ["matchId"] = matchId.ToString(),
                     ["paymentKind"] = paymentKind.ToString(),
                 },
@@ -121,6 +122,7 @@ namespace Server.Services
         public async Task HandleSourceChargeable(Source source)
         {
             var steamId = ulong.Parse(source.Metadata["steamId"]);
+            var payerSteamId = ulong.Parse(source.Metadata["payerSteamId"]);
             var matchId = long.Parse(source.Metadata["matchId"]);
             try
             {
@@ -163,6 +165,7 @@ namespace Server.Services
                     Body = new PaymentUpdateMatchEventBody()
                     {
                         SteamId = steamId.ToString(),
+                        PayerSteamId = payerSteamId.ToString(),
                         Level = player.PatreonLevel,
                         EndDate = player.PatreonEndDate,
                     }
@@ -180,6 +183,7 @@ namespace Server.Services
                     Body = new PaymentUpdateMatchEventBody()
                     {
                         SteamId = steamId.ToString(),
+                        PayerSteamId = payerSteamId.ToString(),
                         Error = ex.Message,
                     }
                 });
