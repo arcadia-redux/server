@@ -252,8 +252,7 @@ namespace Server.Controllers
                 })
                 .ToList();
 
-            Console.WriteLine("Adding " + newPlayers.Count().ToString() + " New Players");
-            _context.Players.AddRange(newPlayers);
+            _context.AddRange(newPlayers);
             _context.Matches.Add(match);
             await _context.SaveChangesAsync();
 
@@ -263,15 +262,21 @@ namespace Server.Controllers
         [Route("patreon_player_update")]
         public async Task<ActionResult> PatreonPlayerUpdate([FromBody] PatreonPlayerUpdate request)
         {
-            var player = _context.Players.FirstOrDefault(p => p.SteamId.ToString() == request.player.SteamId);
-            if (player == null) return Ok();
-            Console.WriteLine("Updating Player Settings " + request.player.PlayerId);
-            _logger.LogInformation("Patreon Player Update");
-            player.PatreonBootsEnabled = request.player.PatreonUpdate.BootsEnabled;
-            player.PatreonEmblemEnabled = request.player.PatreonUpdate.EmblemEnabled;
-            player.PatreonEmblemColor = request.player.PatreonUpdate.EmblemColor;
-            player.PatreonChatWheelFavorites = request.player.PatreonUpdate.ChatWheelFavorites;
+            foreach (var player in request.players)
+            {
+                var ctx = _context.Players.FirstOrDefault(p => p.SteamId.ToString() == player.SteamId);
+                if (ctx == null) continue;
 
+                _context.Players.Update(ctx);
+                
+                Console.WriteLine("Updating Player " + player.SteamId);
+                ctx.PatreonBootsEnabled = player.PatreonUpdate.BootsEnabled;
+                ctx.PatreonEmblemEnabled = player.PatreonUpdate.EmblemEnabled;
+                ctx.PatreonEmblemColor = player.PatreonUpdate.EmblemColor;
+                ctx.PatreonChatWheelFavorites = player.PatreonUpdate.ChatWheelFavorites;
+                
+            }
+            await _context.SaveChangesAsync();
             return Ok();
         }
         [HttpPost]
@@ -293,7 +298,7 @@ namespace Server.Controllers
         [Required] public CustomGame? CustomGame { get; set; }
         [Required] public long MatchId { get; set; }
         [Required] public string MapName { get; set; }
-        [Required] public Player player { get; set; }
+        [Required] public List<Player> players { get; set; }
         public class Player
         {
             [Required] public ushort PlayerId { get; set; }
