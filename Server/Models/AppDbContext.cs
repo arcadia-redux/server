@@ -11,6 +11,8 @@ namespace Server.Models
 
         public DbSet<Player> Players { get; set; }
         public DbSet<Match> Matches { get; set; }
+        // TODO: Changing the collection
+        public DbSet<MatchPlayer> MatchPlayer { get; set; }
         public DbSet<MatchEvent> MatchEvents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)

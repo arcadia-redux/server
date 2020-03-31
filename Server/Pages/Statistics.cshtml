@@ -1,0 +1,45 @@
+@page
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Server.Models
+@using Server.Pages
+@model Server.Pages.StatisticsModel
+
+<h1>Statistics</h1>
+<div style="display: flex; flex-flow: row;">
+@foreach (var customGame in Enum.GetValues(typeof(CustomGame)))
+{
+    <div style="flex: 1">
+        <h2>@Enum.GetName(typeof(CustomGame), customGame)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(model => new HeroEntry().Hero)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => new HeroEntry().WinRate)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => new HeroEntry().TotalMatches)
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in await Model.GetHeroes((CustomGame)customGame)) {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(model => item.Hero)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(model => item.WinRate)%
+                    </td>
+                    <td>
+                        @Html.DisplayFor(model => item.TotalMatches)
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+</div>
