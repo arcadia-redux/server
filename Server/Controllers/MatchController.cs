@@ -40,31 +40,38 @@ namespace Server.Controllers
                         .Where(m => m.Match.MapName == request.MapName)
                         .OrderByDescending(m => m.MatchId)
                         .Take(100)
-                        .GroupBy(m => m.Hero)
-                        .OrderByDescending(g => g.Count())
-                        .Take(10)
-                        .Select(g => g.Key)
+                        .Select(m => m.Hero)
                         .ToList(),
                     HeroesGlobal = p.Matches
                         .OrderByDescending(m => m.MatchId)
                         .Take(100)
-                        .GroupBy(m => m.Hero)
-                        .OrderByDescending(g => g.Count())
-                        .Take(10)
-                        .Select(g => g.Key)
+                        .Select(m => m.Hero)
                         .ToList(),
                 })
                 .ToListAsync();
 
+            List<string> GetBestHeroes(List<string> heroes) => heroes
+                .Except(selectedHeroes)
+                .GroupBy(x => x)
+                .OrderByDescending(g => g.Count())
+                .Take(10)
+                .Select(g => g.Key)
+                .ToList();
+
             return new AutoPickResponse()
             {
-                Players = players.Select(p => new AutoPickResponse.Player()
+                Players = players.Select(p =>
                 {
-                    SteamId = p.SteamId.ToString(),
-                    Heroes = (p.HeroesMap.Except(selectedHeroes).Count() >= 3 ? p.HeroesMap : p.HeroesGlobal)
-                        .Except(selectedHeroes)
-                        .Take(3)
-                        .ToList(),
+                    var bestHeroesOnMap = GetBestHeroes(p.HeroesMap);
+                    var bestHeroesGlobal = GetBestHeroes(p.HeroesGlobal);
+
+                    return new AutoPickResponse.Player()
+                    {
+                        SteamId = p.SteamId.ToString(),
+                        Heroes = (bestHeroesOnMap.Count() >= 3 ? bestHeroesOnMap : bestHeroesGlobal)
+                            .Take(3)
+                            .ToList(),
+                    };
                 })
             };
         }
@@ -92,39 +99,20 @@ namespace Server.Controllers
                             BootsEnabled = p.PatreonBootsEnabled ?? true,
                             ChatWheelFavorites = p.PatreonChatWheelFavorites ?? new List<int>(),
                         },
-                    MatchesOnMap = p.Matches
+                    Matches = p.Matches
                         .Where(m => m.Match.CustomGame == customGame)
-                        .Where(m => m.Match.MapName == mapName)
                         .OrderByDescending(m => m.MatchId)
-                        .Select(m => new { IsWinner = m.Team == m.Match.Winner, m.Kills, m.Deaths, m.Assists })
+                        .Select(mp => new
+                        {
+                            mp.Kills,
+                            mp.Deaths,
+                            mp.Assists,
+                            mp.Match.MapName,
+                            mp.PickReason,
+                            mp.Hero,
+                            IsWinner = mp.Team == mp.Match.Winner,
+                        })
                         .ToList(),
-                    SmartRandomHeroesMap = p.Matches
-                        .Where(m => m.Match.CustomGame == customGame && m.Match.MapName == mapName && m.PickReason == "pick")
-                        .OrderByDescending(m => m.MatchId)
-                        .Take(100)
-
-                        .GroupBy(m => m.Hero)
-                        .Where(g => g.Count() >= (int)Math.Ceiling(Math.Min(p.Matches.Count(m => m.Match.CustomGame == customGame && m.Match.MapName == mapName && m.PickReason == "pick"), 100) / 20.0))
-                        .Select(g => g.Key)
-
-                        .ToList(),
-                    SmartRandomHeroesGlobal = p.Matches
-                        .Where(m => m.Match.CustomGame == customGame && m.PickReason == "pick")
-                        .OrderByDescending(m => m.MatchId)
-                        .Take(100)
-
-                        .GroupBy(m => m.Hero)
-                        .Where(g => g.Count() >= (int)Math.Ceiling(Math.Min(p.Matches.Count(m => m.Match.CustomGame == customGame && m.PickReason == "pick"), 100) / 20.0))
-                        .Select(g => g.Key)
-
-                        .ToList(),
-                    LastSmartRandomUse = p.Matches
-                        .Where(m => m.Match.CustomGame == customGame)
-                        .Where(m => m.PickReason == "smart-random")
-                        .OrderByDescending(m => m.Match.EndedAt)
-                        .Take(1)
-                        .Select(m => m.Match.EndedAt)
-                        .FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -156,31 +144,47 @@ namespace Server.Controllers
                             response.Patreon.Level = 0;
                         }
 
+                        var matchesOnMap = response.Matches.Where(m => m.MapName == mapName).ToList();
+
                         var player = new BeforeMatchResponse.Player
                         {
                             SteamId = id.ToString(),
                             Patreon = response.Patreon,
-                            Streak = response.MatchesOnMap.TakeWhile(w => w.IsWinner).Count(),
-                            BestStreak = response.MatchesOnMap.LongestStreak(w => w.IsWinner),
-                            AverageKills = response.MatchesOnMap
+                            Streak = matchesOnMap.TakeWhile(w => w.IsWinner).Count(),
+                            BestStreak = matchesOnMap.LongestStreak(w => w.IsWinner),
+                            AverageKills = matchesOnMap
                                 .Select(x => (double)x.Kills)
                                 .DefaultIfEmpty()
                                 .Average(),
-                            AverageDeaths = response.MatchesOnMap
+                            AverageDeaths = matchesOnMap
                                 .Select(x => (double)x.Deaths)
                                 .DefaultIfEmpty()
                                 .Average(),
-                            AverageAssists = response.MatchesOnMap
+                            AverageAssists = matchesOnMap
                                 .Select(x => (double)x.Assists)
                                 .DefaultIfEmpty()
                                 .Average(),
-                            Wins = response.MatchesOnMap.Count(w => w.IsWinner),
-                            Loses = response.MatchesOnMap.Count(w => !w.IsWinner),
+                            Wins = matchesOnMap.Count(w => w.IsWinner),
+                            Loses = matchesOnMap.Count(w => !w.IsWinner),
                         };
 
-                        var heroes = response.SmartRandomHeroesMap.Count >= 5
-                            ? response.SmartRandomHeroesMap
-                            : response.SmartRandomHeroesGlobal;
+                        List<string> GetSmartRandomHeroes(bool onMap)
+                        {
+                            var matches = (onMap ? matchesOnMap : response.Matches).Where(m => m.PickReason == "pick");
+                            return matches
+                                .Take(100)
+                                .GroupBy(m => m.Hero)
+                                .Where(g => g.Count() >= (int)Math.Ceiling(Math.Min(matches.Count(), 100) / 20.0))
+                                .Select(g => g.Key)
+                                .ToList();
+                        };
+
+                        var smartRandomHeroesMap = GetSmartRandomHeroes(true);
+                        var smartRandomHeroesGlobal = GetSmartRandomHeroes(false);
+
+                        var heroes = smartRandomHeroesMap.Count >= 5
+                            ? smartRandomHeroesMap
+                            : smartRandomHeroesGlobal;
 
                         if (heroes.Count >= 3)
                         {

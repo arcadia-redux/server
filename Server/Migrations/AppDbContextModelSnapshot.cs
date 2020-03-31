@@ -23,18 +23,24 @@ namespace Server.Migrations
             modelBuilder.Entity("Server.Models.Match", b =>
                 {
                     b.Property<long>("MatchId")
-                        .ValueGeneratedOnAdd();
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
 
                     b.Property<string>("CustomGame")
-                        .IsRequired();
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                    b.Property<long>("Duration");
+                    b.Property<long>("Duration")
+                        .HasColumnType("bigint");
 
-                    b.Property<DateTime>("EndedAt");
+                    b.Property<DateTime>("EndedAt")
+                        .HasColumnType("timestamp without time zone");
 
-                    b.Property<string>("MapName");
+                    b.Property<string>("MapName")
+                        .HasColumnType("text");
 
-                    b.Property<int>("Winner");
+                    b.Property<int>("Winner")
+                        .HasColumnType("integer");
 
                     b.HasKey("MatchId");
 
@@ -44,11 +50,14 @@ namespace Server.Migrations
             modelBuilder.Entity("Server.Models.MatchEvent", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd();
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
-                    b.Property<string>("Body");
+                    b.Property<string>("Body")
+                        .HasColumnType("text");
 
-                    b.Property<long>("MatchId");
+                    b.Property<long>("MatchId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -57,26 +66,35 @@ namespace Server.Migrations
 
             modelBuilder.Entity("Server.Models.MatchPlayer", b =>
                 {
-                    b.Property<long>("MatchId");
+                    b.Property<long>("MatchId")
+                        .HasColumnType("bigint");
 
                     b.Property<decimal>("SteamId")
-                        .HasConversion(new ValueConverter<decimal, decimal>(v => default(decimal), v => default(decimal), new ConverterMappingHints(precision: 20, scale: 0)));
+                        .HasColumnType("numeric(20,0)");
 
-                    b.Property<long>("Assists");
+                    b.Property<long>("Assists")
+                        .HasColumnType("bigint");
 
-                    b.Property<long>("Deaths");
+                    b.Property<long>("Deaths")
+                        .HasColumnType("bigint");
 
-                    b.Property<string>("Hero");
+                    b.Property<string>("Hero")
+                        .HasColumnType("text");
 
-                    b.Property<long>("Kills");
+                    b.Property<long>("Kills")
+                        .HasColumnType("bigint");
 
-                    b.Property<long>("Level");
+                    b.Property<long>("Level")
+                        .HasColumnType("bigint");
 
-                    b.Property<string>("PickReason");
+                    b.Property<string>("PickReason")
+                        .HasColumnType("text");
 
-                    b.Property<int>("PlayerId");
+                    b.Property<int>("PlayerId")
+                        .HasColumnType("integer");
 
-                    b.Property<int>("Team");
+                    b.Property<int>("Team")
+                        .HasColumnType("integer");
 
                     b.HasKey("MatchId", "SteamId");
 
@@ -89,21 +107,28 @@ namespace Server.Migrations
                 {
                     b.Property<decimal>("SteamId")
                         .ValueGeneratedOnAdd()
-                        .HasConversion(new ValueConverter<decimal, decimal>(v => default(decimal), v => default(decimal), new ConverterMappingHints(precision: 20, scale: 0)));
+                        .HasColumnType("numeric(20,0)");
 
-                    b.Property<string>("Comment");
+                    b.Property<string>("Comment")
+                        .HasColumnType("text");
 
-                    b.Property<bool?>("PatreonBootsEnabled");
+                    b.Property<bool?>("PatreonBootsEnabled")
+                        .HasColumnType("boolean");
 
-                    b.Property<List<int>>("PatreonChatWheelFavorites");
+                    b.Property<List<int>>("PatreonChatWheelFavorites")
+                        .HasColumnType("integer[]");
 
-                    b.Property<string>("PatreonEmblemColor");
+                    b.Property<string>("PatreonEmblemColor")
+                        .HasColumnType("text");
 
-                    b.Property<bool?>("PatreonEmblemEnabled");
+                    b.Property<bool?>("PatreonEmblemEnabled")
+                        .HasColumnType("boolean");
 
-                    b.Property<DateTime?>("PatreonEndDate");
+                    b.Property<DateTime?>("PatreonEndDate")
+                        .HasColumnType("timestamp without time zone");
 
-                    b.Property<int>("PatreonLevel");
+                    b.Property<int>("PatreonLevel")
+                        .HasColumnType("integer");
 
                     b.HasKey("SteamId");
 

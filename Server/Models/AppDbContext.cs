@@ -17,6 +17,9 @@ namespace Server.Models
         {
             base.OnModelCreating(builder);
 
+            // TODO: Npgsql 3.0 - https://www.npgsql.org/efcore/release-notes/3.0.html#breaking-changes
+            builder.UseSerialColumns();
+
             var jsonSerializerOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
