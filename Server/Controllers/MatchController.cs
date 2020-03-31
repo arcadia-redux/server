@@ -259,17 +259,18 @@ namespace Server.Controllers
             return Ok();
         }
         [HttpPost]
-        [Route("patreon_player_update")]
+        [Route("patreon-player-update")]
         public async Task<ActionResult> PatreonPlayerUpdate([FromBody] PatreonPlayerUpdate request)
         {
             foreach (var player in request.players)
             {
                 var ctx = _context.Players.FirstOrDefault(p => p.SteamId.ToString() == player.SteamId);
-                if (ctx == null) continue;
-
-                _context.Players.Update(ctx);
-                
-                Console.WriteLine("Updating Player " + player.SteamId);
+                if (ctx == null)
+                {
+                    ctx = new Player() { SteamId = ulong.Parse(player.SteamId) };
+                    _context.Players.Add(ctx);
+                }
+ 
                 ctx.PatreonBootsEnabled = player.PatreonUpdate.BootsEnabled;
                 ctx.PatreonEmblemEnabled = player.PatreonUpdate.EmblemEnabled;
                 ctx.PatreonEmblemColor = player.PatreonUpdate.EmblemColor;
@@ -291,17 +292,12 @@ namespace Server.Controllers
 
             return events.Select(e => e.Body).ToList();
         }
-
-
     }
-        public class PatreonPlayerUpdate {
-        [Required] public CustomGame? CustomGame { get; set; }
-        [Required] public long MatchId { get; set; }
-        [Required] public string MapName { get; set; }
+    public class PatreonPlayerUpdate {
+
         [Required] public List<Player> players { get; set; }
         public class Player
         {
-            [Required] public ushort PlayerId { get; set; }
             [Required] public string SteamId { get; set; }
 
             public PatreonUpdate PatreonUpdate { get; set; }
