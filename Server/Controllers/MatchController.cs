@@ -252,13 +252,28 @@ namespace Server.Controllers
                 })
                 .ToList();
 
-            _context.AddRange(newPlayers);
+            Console.WriteLine("Adding " + newPlayers.Count().ToString() + " New Players");
+            _context.Players.AddRange(newPlayers);
             _context.Matches.Add(match);
             await _context.SaveChangesAsync();
 
             return Ok();
         }
+        [HttpPost]
+        [Route("patreon_player_update")]
+        public async Task<ActionResult> PatreonPlayerUpdate([FromBody] PatreonPlayerUpdate request)
+        {
+            var player = _context.Players.FirstOrDefault(p => p.SteamId.ToString() == request.player.SteamId);
+            if (player == null) return Ok();
+            Console.WriteLine("Updating Player Settings " + request.player.PlayerId);
+            _logger.LogInformation("Patreon Player Update");
+            player.PatreonBootsEnabled = request.player.PatreonUpdate.BootsEnabled;
+            player.PatreonEmblemEnabled = request.player.PatreonUpdate.EmblemEnabled;
+            player.PatreonEmblemColor = request.player.PatreonUpdate.EmblemColor;
+            player.PatreonChatWheelFavorites = request.player.PatreonUpdate.ChatWheelFavorites;
 
+            return Ok();
+        }
         [HttpPost]
         [Route("events")]
         public async Task<List<object>> Events([FromBody] MatchEventsRequest request)
@@ -271,8 +286,30 @@ namespace Server.Controllers
 
             return events.Select(e => e.Body).ToList();
         }
-    }
 
+
+    }
+        public class PatreonPlayerUpdate {
+        [Required] public CustomGame? CustomGame { get; set; }
+        [Required] public long MatchId { get; set; }
+        [Required] public string MapName { get; set; }
+        [Required] public Player player { get; set; }
+        public class Player
+        {
+            [Required] public ushort PlayerId { get; set; }
+            [Required] public string SteamId { get; set; }
+
+            public PatreonUpdate PatreonUpdate { get; set; }
+        }
+        public class PatreonUpdate
+        {
+            public bool EmblemEnabled { get; set; }
+            public string EmblemColor { get; set; }
+            public bool BootsEnabled { get; set; }
+            // TODO: Required?
+            public List<int>? ChatWheelFavorites { get; set; }
+        }
+    }
     public class AfterMatchRequest
     {
         [Required] public CustomGame? CustomGame { get; set; }
