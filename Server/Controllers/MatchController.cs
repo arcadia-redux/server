@@ -258,28 +258,30 @@ namespace Server.Controllers
 
             return Ok();
         }
+
         [HttpPost]
         [Route("patreon-player-update")]
         public async Task<ActionResult> PatreonPlayerUpdate([FromBody] PatreonPlayerUpdate request)
         {
-            foreach (var player in request.players)
+            foreach (var player_update in request.players)
             {
-                var ctx = _context.Players.FirstOrDefault(p => p.SteamId.ToString() == player.SteamId);
-                if (ctx == null)
+                var player = _context.Players.FirstOrDefault(p => p.SteamId.ToString() == player_update.SteamId);
+                if (player == null)
                 {
-                    ctx = new Player() { SteamId = ulong.Parse(player.SteamId) };
-                    _context.Players.Add(ctx);
+                    player = new Player() { SteamId = ulong.Parse(player_update.SteamId) };
+                    _context.Players.Add(player);
                 }
- 
-                ctx.PatreonBootsEnabled = player.PatreonUpdate.BootsEnabled;
-                ctx.PatreonEmblemEnabled = player.PatreonUpdate.EmblemEnabled;
-                ctx.PatreonEmblemColor = player.PatreonUpdate.EmblemColor;
-                ctx.PatreonChatWheelFavorites = player.PatreonUpdate.ChatWheelFavorites;
+
+                player.PatreonBootsEnabled = player_update.PatreonUpdate.BootsEnabled;
+                player.PatreonEmblemEnabled = player_update.PatreonUpdate.EmblemEnabled;
+                player.PatreonEmblemColor = player_update.PatreonUpdate.EmblemColor;
+                player.PatreonChatWheelFavorites = player_update.PatreonUpdate.ChatWheelFavorites;
                 
             }
             await _context.SaveChangesAsync();
             return Ok();
         }
+
         [HttpPost]
         [Route("events")]
         public async Task<List<object>> Events([FromBody] MatchEventsRequest request)
@@ -293,6 +295,7 @@ namespace Server.Controllers
             return events.Select(e => e.Body).ToList();
         }
     }
+
     public class PatreonPlayerUpdate {
 
         [Required] public List<Player> players { get; set; }
@@ -300,17 +303,17 @@ namespace Server.Controllers
         {
             [Required] public string SteamId { get; set; }
 
-            public PatreonUpdate PatreonUpdate { get; set; }
+            [Required] public PatreonUpdate PatreonUpdate { get; set; }
         }
         public class PatreonUpdate
         {
             public bool EmblemEnabled { get; set; }
             public string EmblemColor { get; set; }
             public bool BootsEnabled { get; set; }
-            // TODO: Required?
             public List<int>? ChatWheelFavorites { get; set; }
         }
     }
+
     public class AfterMatchRequest
     {
         [Required] public CustomGame? CustomGame { get; set; }
