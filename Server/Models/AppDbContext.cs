@@ -8,7 +8,7 @@ namespace Server.Models
         public AppDbContext(DbContextOptions options) : base(options)
         {
         }
-
+        public DbSet<Patron> Patrons { get; set; }
         public DbSet<Player> Players { get; set; }
         public DbSet<Match> Matches { get; set; }
         public DbSet<MatchEvent> MatchEvents { get; set; }
