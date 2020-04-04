@@ -14,6 +14,7 @@ using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
 namespace Server.Controllers
 {
+   
     [Route("api/[controller]")]
     [ApiController]
     public class PatreonController : ControllerBase
@@ -43,12 +44,12 @@ namespace Server.Controllers
                         existing = _context.Patrons.Where(p => p.Patreon._id == patreonUser._id).First();
                         if (existing == null)
                         {
-                            var patron = new Patron
+                            var premium = new Premium
                             {
                                 Patreon = patreonUser
                             };
-                            _context.Add(patron);
-                            patron.Verify(Request.Host.ToString());
+                            _context.Add(premium);
+                            premium.Verify(Request.Host.ToString());
                         } else
                         {
                             existing.Active = true; 
@@ -93,9 +94,11 @@ public class Included
 
 public class Steam
 {
-    public int id { get; set; }
-    public DateTime created_at { get; set; } = DateTime.UtcNow;
-    public DateTime updated_at { get; set; } = DateTime.UtcNow;
+    [Key] public int Id { get; set; }
+    public int SteamId { get; set; }
+    public string Name { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
 
 
@@ -103,6 +106,7 @@ public class Steam
 
 public class PatreonUser
 {
+    [Key] public int Id { get; set; }
     public int _id { get; set; }
     public DateTime created_at { get; set; } = DateTime.UtcNow;
     public DateTime updated_at { get; set; } = DateTime.UtcNow;
@@ -117,6 +121,7 @@ public class PatreonUser
 }
 public class Verification
 {
+    [Key] public int Id { get; set; }
     public int Status { get; set; } = 0;
 
     public Guid Guid { get; set; } = Guid.NewGuid();
@@ -134,42 +139,125 @@ public static class SMTP
     public static Boolean SSL = true;
 }
 
-public class Patron
+public class Premium
 {
+    [Key] public int Id { get; set; }
     public Steam Steam { get; set; } = new Steam();
 
     public Verification Verification { get; set; } = new Verification();
 
-    public PatreonUser Patreon { get; set; }
+    public PatreonUser Patreon { get; set; } = null;
 
     public Boolean Active { get; set; }
 
-    public int FriendInvites;
+    public int Tier {
+        get {
+            return calculateTier();
+        }
+    }
+    public int FriendInvites { 
+        get {
+            return calculateInvites();
+        }
+    }
 
-    public void Verify(string Host)
+    public Boolean Invited { get; set; } = false;
+
+    public string Email { get; set; }
+
+
+    public int calculateInvites()
+    {
+        if (Patreon != null)
+        {
+            double amount = Patreon.amount_cents / 100.0;
+            if (amount >= 10.0 && amount < 25.0)
+            {
+                return 1;
+            }
+            if (amount >= 25.0 && amount < 50.0)
+            {
+                return 3;
+            }
+            if (amount >= 50)
+            {
+                return 5;
+            }
+        }
+        return 0;
+    }
+    public int calculateTier()
+    {
+        if (Patreon != null)
+        {
+            double amount = Patreon.amount_cents / 100.0;
+            if (amount <= 10.0)
+            {
+                return 1;
+            }
+            if (amount >= 25.0)
+            {
+                return 2;
+            }
+
+        }
+        if (Invited)
+        {
+            return 1;
+        }
+        return 0;
+    }
+    public void SendActivation(string Host)
+    {
+        SendMail(
+                Email,
+                String.Format("Dota12v12: You are now Premium! Activate your Steam Account"),
+                String.Format(@"
+                Thank you for your Support!
+            
+                To receive all our perks, Please active your steam account with the link below.
+
+                https://{0}/activate?g={1}
+
+                ", Host, Verification.Guid)
+        );
+        Verification.Status = 1;
+    }
+
+    public void SendInvite(string Host, string email)
+    {
+        var invitee = new Premium
+        {
+            Invited = true,
+            Email = email
+        };
+
+        SendMail(
+                email,
+                String.Format(@"Dota12v12: {0} Gifted you a premium account", Steam.Name),
+                String.Format(@"
+                    To receive all our perks, Please active your steam account with the link below.
+
+                    https://{0}/activate?g={1}
+
+                ", Host, invitee.Verification.Guid)
+        );
+        invitee.Verification.Status = 1;
+    }
+
+    public void SendMail(string to_email, string subject, string body)
     {
         MailMessage mail = new MailMessage();
         SmtpClient SmtpServer = new SmtpClient(SMTP.Host);
-
         mail.From = new MailAddress(SMTP.From);
-        mail.To.Add(Patreon.email);
-        mail.Subject = "Dota12v12: Thank you for your Support! Activate your Steam Account";
-        mail.Body = String.Format(@"
-            Thank you for your Support!
-            
-            To receive all our perks, Please active your steam account with the link below.
-
-            https://{0}/verify?g={1}
-
-        ", Host, Verification.Guid);
-
+        mail.To.Add(to_email);
+        mail.Subject = subject;
+        mail.Body = body;
         SmtpServer.Port = SMTP.Port;
         SmtpServer.EnableSsl = SMTP.SSL;
         SmtpServer.Credentials = new System.Net.NetworkCredential(SMTP.Username, SMTP.Password);
-
         SmtpServer.Send(mail);
 
-        Verification.Status = 1;
     }
 }
 class WebhookResponse
