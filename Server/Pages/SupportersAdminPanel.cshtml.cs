@@ -41,9 +41,13 @@ namespace Server.Pages
                 player = new Player() { SteamId = Req.SteamId };
                 _context.Add(player);
             }
+
             player.PatreonLevel = Req.PatreonLevel;
             player.Comment = Req.Comment;
+            player.PatreonEndDate = null;
+
             _context.SaveChanges();
+
             return Page();
         }
 
