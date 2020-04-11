@@ -12,7 +12,7 @@ using Server.Services;
 
 namespace Server.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class MatchController : ControllerBase
