@@ -11,7 +11,7 @@ using Server.Models;
 namespace Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20200411171459_AddPlayerRating")]
+    [Migration("20200411190816_AddPlayerRating")]
     partial class AddPlayerRating
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -133,8 +133,10 @@ namespace Server.Migrations
                     b.Property<int>("PatreonLevel")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Rating")
-                        .HasColumnType("integer");
+                    b.Property<int>("Rating12v12")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2000);
 
                     b.HasKey("SteamId");
 

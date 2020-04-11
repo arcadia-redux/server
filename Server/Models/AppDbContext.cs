@@ -40,6 +40,10 @@ namespace Server.Models
                     b => JsonSerializer.Serialize(b, jsonSerializerOptions),
                     b => JsonSerializer.Deserialize<object>(b, jsonSerializerOptions)
                 );
+
+            builder.Entity<Player>()
+                .Property(s => s.Rating12v12)
+                .HasDefaultValue(2000);
         }
     }
 }

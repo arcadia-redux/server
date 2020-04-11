@@ -7,7 +7,7 @@ namespace Server.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
-                name: "Rating",
+                name: "Rating12v12",
                 table: "Players",
                 nullable: false,
                 defaultValue: 2000);
@@ -16,7 +16,7 @@ namespace Server.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Rating",
+                name: "Rating12v12",
                 table: "Players");
         }
     }
