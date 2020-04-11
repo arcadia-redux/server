@@ -18,6 +18,11 @@ namespace Server.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger _logger;
+        private const int InitialRating = 2000;
+        private const int NumberOfTopPlayers = 100;
+        private const int MaximumDelta = 25;
+        private const int BaseRating = 30;
+        private const int DivisionPoints = 40;
 
         public MatchController(AppDbContext context, ILogger<MatchController> logger)
         {
@@ -84,8 +89,11 @@ namespace Server.Controllers
             var mapName = request.MapName;
 
             var realSteamIds = request.Players.Select(ulong.Parse).ToList();
+            // We need to do another call in order to get the top players for leaderBoard
+            List<LeaderBoardPlayer> topPlayers = await GetTopPlayers();
+            var topPlayerIds = topPlayers.Select(tp => tp.SteamId).ToList();
             var responses = await _context.Players
-                .Where(p => realSteamIds.Contains(p.SteamId))
+                .Where(p => realSteamIds.Contains(p.SteamId) && !topPlayerIds.Contains(p.SteamId))
                 .Select(p => new
                 {
                     SteamId = p.SteamId.ToString(),
@@ -113,6 +121,7 @@ namespace Server.Controllers
                             IsWinner = mp.Team == mp.Match.Winner,
                         })
                         .ToList(),
+                    p.Rating
                 })
                 .ToListAsync();
 
@@ -197,13 +206,20 @@ namespace Server.Controllers
 
                         return player;
                     })
-                    .ToList()
+                    .ToList(),
+                LeaderBoard = topPlayers
+                    .Union(responses.Select(x => new LeaderBoardPlayer()
+                    {
+                        Rating = x.Rating,
+                        SteamId = ulong.Parse(x.SteamId)
+                    }))
+                    .OrderByDescending(lp => lp.Rating)
             };
         }
 
         [HttpPost]
         [Route("after")]
-        public async Task<ActionResult> After([FromBody] AfterMatchRequest request)
+        public async Task<AfterMatchResponse> After([FromBody] AfterMatchRequest request)
         {
             var requestedSteamIds = request.Players.Select(p => ulong.Parse(p.SteamId)).ToList();
 
@@ -213,7 +229,7 @@ namespace Server.Controllers
 
             var newPlayers = request.Players
                 .Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
-                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId) })
+                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating = InitialRating })
                 .ToList();
 
             foreach (var playerUpdate in request.Players.Where(p => p.PatreonUpdate != null))
@@ -260,7 +276,9 @@ namespace Server.Controllers
             _context.Matches.Add(match);
             await _context.SaveChangesAsync();
 
-            return Ok();
+            var allPlayers = await UpdateNewRating(request, existingPlayers, newPlayers);
+            AfterMatchResponse response = await GetNewLeaderBoard(allPlayers);
+            return response;
         }
 
         [HttpPost]
@@ -274,6 +292,113 @@ namespace Server.Controllers
             await _context.SaveChangesAsync();
 
             return events.Select(e => e.Body).ToList();
+        }
+
+        /// <summary>
+        /// Should return the top 100 top players. If you need to change that, change the constant at the beginning
+        /// </summary>
+        /// <returns></returns>
+        private async Task<List<LeaderBoardPlayer>> GetTopPlayers()
+        {
+            return await _context.Players
+                            .OrderByDescending(p => p.Rating)
+                            .Take(NumberOfTopPlayers)
+                            .Select(p => new LeaderBoardPlayer
+                            {
+                                SteamId = p.SteamId,
+                                Rating = p.Rating
+                            }).ToListAsync();
+        }
+
+        /// <summary>
+        /// It gets winning teams, losing teams and then updates the new rating
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="existingPlayers"></param>
+        /// <param name="newPlayers"></param>
+        /// <returns></returns>
+        private async Task<List<Player>> UpdateNewRating(AfterMatchRequest request, List<Player> existingPlayers, List<Player> newPlayers)
+        {
+            var allPlayers = existingPlayers.Union(newPlayers).ToList();
+            var winningTeam = GetWinningTeam(request, allPlayers, out var averageWinningRating);
+            var losingTeam = GetLosingTeam(request, allPlayers, out var averageLosingRating);
+            var scoreDelta = CalculateScoreDelta(averageWinningRating, averageLosingRating);
+            await UpdateRating(winningTeam, losingTeam, scoreDelta);
+            return allPlayers;
+        }
+
+
+        /// <summary>
+        /// Formula is the difference between loosing and winning team of avg rating divided by 40
+        /// </summary>
+        /// <param name="averageWinningRating"></param>
+        /// <param name="averageLosingRating"></param>
+        /// <returns></returns>
+        private static int CalculateScoreDelta(double averageWinningRating, double averageLosingRating)
+        {
+            var scoreDeltaDouble =
+                -(averageWinningRating - averageLosingRating) /
+                DivisionPoints; // e.g. - (1900 - 2100) / 40 = 5. Meaning winning team will get 5 more points 
+                                // than the base as their average was weaker
+            int scoreDelta =
+                Convert.ToInt32(Math.Round(scoreDeltaDouble, 0,
+                    MidpointRounding.AwayFromZero)); // we don't do a conversion straight to the double
+                                                     // as it will do a MidpointRounding.ToEven by default
+            scoreDelta = scoreDelta > MaximumDelta ? MaximumDelta : scoreDelta;
+            return scoreDelta;
+        }
+
+        private static IEnumerable<Player> GetLosingTeam(AfterMatchRequest request, List<Player> allPlayers, out double averageLosingRating)
+        {
+            var losingTeamIds = request
+                .Players
+                .Where(p => p.Team != request.Winner)
+                .Select(p => ulong.Parse(p.SteamId))
+                .ToList();
+            var losingTeam = allPlayers.Where(p => losingTeamIds.Contains(p.SteamId));
+            averageLosingRating = losingTeam.Average(p => p.Rating);
+            return losingTeam;
+        }
+
+        private static IEnumerable<Player> GetWinningTeam(AfterMatchRequest request, List<Player> allPlayers, out double averageWinningRating)
+        {
+            var winningTeamIds = request
+                .Players
+                .Where(p => p.Team == request.Winner)
+                .Select(p => ulong.Parse(p.SteamId))
+                .ToList();
+            var winningTeam = allPlayers.Where(p => winningTeamIds.Contains(p.SteamId));
+            averageWinningRating = winningTeam.Average(p => p.Rating);
+            return winningTeam;
+        }
+
+        private async Task UpdateRating(IEnumerable<Player> winningTeam, IEnumerable<Player> losingTeam, int scoreDelta)
+        {
+            foreach (var player in winningTeam)
+                player.Rating = player.Rating + (BaseRating + scoreDelta);
+            foreach (var player in losingTeam)
+                player.Rating = player.Rating - (BaseRating + scoreDelta);
+            _context.UpdateRange(winningTeam);
+            _context.UpdateRange(losingTeam);
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task<AfterMatchResponse> GetNewLeaderBoard(IEnumerable<Player> players)
+        {
+            var response = new AfterMatchResponse();
+            var topPlayers = await GetTopPlayers();
+            var topPlayersId = topPlayers.Select(tp => tp.SteamId).ToList();
+            var leaderBoardMatchPlayers = players
+                .Where(p => !topPlayersId.Contains(p.SteamId))
+                .Select(p => new LeaderBoardPlayer()
+                {
+                    Rating = p.Rating,
+                    SteamId = p.SteamId
+                });
+            topPlayers.AddRange(leaderBoardMatchPlayers);
+            response.LeaderBoard = topPlayers
+                .OrderByDescending(p => p.Rating);
+            return response;
         }
     }
 
@@ -341,6 +466,7 @@ namespace Server.Controllers
     public class BeforeMatchResponse
     {
         public IEnumerable<Player> Players { get; set; }
+        public IEnumerable<LeaderBoardPlayer> LeaderBoard { get; set; }
 
         public class Player
         {
@@ -371,5 +497,16 @@ namespace Server.Controllers
     public class MatchEventsRequest
     {
         [Required] public long MatchId { get; set; }
+    }
+
+    public class AfterMatchResponse
+    {
+        public IEnumerable<LeaderBoardPlayer> LeaderBoard { get; set; }
+    }
+
+    public class LeaderBoardPlayer
+    {
+        public ulong SteamId { get; set; }
+        public int Rating { get; set; }
     }
 }
