@@ -19,13 +19,13 @@ namespace Server.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger _logger;
-        private readonly LeaderBoardService _leaderBoardService;
+        private readonly RatingService _ratingService;
 
-        public MatchController(AppDbContext context, ILogger<MatchController> logger, LeaderBoardService leaderBoardService)
+        public MatchController(AppDbContext context, ILogger<MatchController> logger, RatingService ratingService)
         {
             _context = context;
             _logger = logger;
-            _leaderBoardService = leaderBoardService;
+            _ratingService = ratingService;
         }
 
         [HttpPost]
@@ -88,10 +88,9 @@ namespace Server.Controllers
 
             var realSteamIds = request.Players.Select(ulong.Parse).ToList();
             // We need to do another call in order to get the top players for leaderBoard
-            List<LeaderBoardPlayer> topPlayers = await _leaderBoardService.GetTopPlayers();
-            var topPlayerIds = topPlayers.Select(tp => tp.SteamId).ToList();
+            List<LeaderBoardPlayer> topPlayers = await _ratingService.GetTopPlayers();
             var responses = await _context.Players
-                .Where(p => realSteamIds.Contains(p.SteamId) && !topPlayerIds.Contains(p.SteamId))
+                .Where(p => realSteamIds.Contains(p.SteamId))
                 .Select(p => new
                 {
                     SteamId = p.SteamId.ToString(),
@@ -205,7 +204,7 @@ namespace Server.Controllers
                         return player;
                     })
                     .ToList(),
-                LeaderBoard = topPlayers.OrderByDescending(lp => lp.Rating)
+                LeaderBoard = topPlayers
             };
         }
 
@@ -224,12 +223,7 @@ namespace Server.Controllers
                 .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = 2000 })
                 .ToList();
             var allPlayers = existingPlayers.Union(newPlayers).ToList();
-            var playerMatcher = new Dictionary<string, AfterMatchResponse.Player>();
-            foreach (var player in allPlayers)
-            {
-                if (!playerMatcher.ContainsKey(player.SteamId.ToString()))
-                    playerMatcher.Add(player.SteamId.ToString(), new AfterMatchResponse.Player { SteamId = player.SteamId, OldRating = player.Rating12v12 });
-            }
+            var oldPlayerRatings = allPlayers.ToDictionary(p => p.SteamId, p => p.Rating12v12);
 
             foreach (var playerUpdate in request.Players.Where(p => p.PatreonUpdate != null))
             {
@@ -273,16 +267,20 @@ namespace Server.Controllers
 
             _context.AddRange(newPlayers);
             _context.Matches.Add(match);
-            allPlayers = await _leaderBoardService.UpdateNewRating(request, allPlayers);
+
+            var playersKvp = request.Players.ToDictionary(x => x.SteamId, x => x.Team);
+            var teams = _ratingService.SplitTeams(playersKvp, request.Winner, allPlayers);
+            await _ratingService.UpdateNewRating(teams[GameResult.Winner], teams[GameResult.Loser]);
             await _context.SaveChangesAsync();
-            foreach (var player in allPlayers)
+            return new AfterMatchResponse()
             {
-                if (playerMatcher.ContainsKey(player.SteamId.ToString()))
-                    playerMatcher[player.SteamId.ToString()].NewRating = player.Rating12v12;
-            }
-            var response = new AfterMatchResponse();
-            response.Players = playerMatcher.Values.ToList();
-            return response;
+                Players = allPlayers.Select(p => new AfterMatchResponse.Player()
+                {
+                    SteamId = p.SteamId.ToString(),
+                    OldRating = oldPlayerRatings[p.SteamId],
+                    NewRating = p.Rating12v12,
+                }),
+            };
         }
 
         [HttpPost]
@@ -402,15 +400,9 @@ namespace Server.Controllers
 
         public class Player
         {
-            public ulong SteamId { get; set; }
+            public string SteamId { get; set; }
             public int OldRating { get; set; }
             public int NewRating { get; set; }
         }
-    }
-
-    public class LeaderBoardPlayer
-    {
-        public ulong SteamId { get; set; }
-        public int Rating { get; set; }
     }
 }
