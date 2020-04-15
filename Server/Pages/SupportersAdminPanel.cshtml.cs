@@ -54,7 +54,7 @@ namespace Server.Pages
         public async Task<PatreonPlayer[]> GetAllSupporters()
         {
             return await _context.Players
-                .Where(p => p.PatreonLevel > 0)
+                .Where(p => p.PatreonLevel > 0 && (!p.PatreonEndDate.HasValue || p.PatreonEndDate > DateTime.UtcNow))
                 .Select(p => new PatreonPlayer()
                 {
                     SteamId = p.SteamId,
@@ -62,8 +62,13 @@ namespace Server.Pages
                     PatreonLevel = p.PatreonLevel,
                     PatreonEndDate = p.PatreonEndDate,
                 })
+                .OrderBy(p => p.PatreonEndDate ?? DateTime.MinValue)
+                .ThenBy(p => p.SteamId)
                 .ToArrayAsync();
         }
+
+        public async Task<int> GetExpiredSupporterCount() =>
+            await _context.Players.CountAsync(p => p.PatreonLevel > 0 && p.PatreonEndDate < DateTime.UtcNow);
     }
 
     public class PatreonPlayer
