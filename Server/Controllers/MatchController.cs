@@ -87,8 +87,6 @@ namespace Server.Controllers
             var mapName = request.MapName;
 
             var realSteamIds = request.Players.Select(ulong.Parse).ToList();
-            // We need to do another call in order to get the top players for Leaderboard
-            List<LeaderboardPlayer> topPlayers = await _ratingService.GetTopPlayers();
             var responses = await _context.Players
                 .Where(p => realSteamIds.Contains(p.SteamId))
                 .Select(p => new
@@ -204,7 +202,7 @@ namespace Server.Controllers
                         return player;
                     })
                     .ToList(),
-                Leaderboard = topPlayers
+                Leaderboard = customGame == CustomGame.Dota12v12 ? await _ratingService.GetLeaderboard(): null,
             };
         }
 

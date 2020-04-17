@@ -20,7 +20,7 @@ namespace Server.Services
             _context = context;
         }
 
-        public async Task<List<LeaderboardPlayer>> GetTopPlayers()
+        public async Task<List<LeaderboardPlayer>> GetLeaderboard()
         {
             return await _context.Players
                             .OrderByDescending(p => p.Rating12v12)
