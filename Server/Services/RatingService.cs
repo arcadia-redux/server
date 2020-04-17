@@ -20,23 +20,26 @@ namespace Server.Services
             _context = context;
         }
 
-        public async Task<List<LeaderBoardPlayer>> GetTopPlayers()
+        public async Task<List<LeaderboardPlayer>> GetTopPlayers()
         {
             return await _context.Players
                             .OrderByDescending(p => p.Rating12v12)
                             .Take(NumberOfTopPlayers)
-                            .Select(p => new LeaderBoardPlayer { SteamId = p.SteamId, Rating = p.Rating12v12 })
+                            .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = p.Rating12v12.ToString() })
                             .OrderByDescending(p => p.Rating)
                             .ToListAsync();
         }
 
-        public async Task UpdateNewRating(IEnumerable<Player> winners, IEnumerable<Player> losers)
+        public Dictionary<ulong, PlayerRatingChange> RecordRankedMatch(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam, List<Player> players)
         {
-            var averageWinningRating = winners.Average(p => p.Rating12v12);
-            var averageLosingRating = losers.Average(p => p.Rating12v12);
+            var teams = SplitTeams(matchPlayers, winnerTeam, players);
+
+            var averageWinningRating = teams.Where(x => x.Value == GameResult.Winner).Average(p => p.Key.Rating12v12);
+            var averageLosingRating = teams.Where(x => x.Value == GameResult.Loser).Average(p => p.Key.Rating12v12);
             // Formula is the difference between loosing and winning team of avg rating divided by 40
             var scoreDelta = CalculateScoreDelta(averageWinningRating, averageLosingRating);
-            await UpdateRating(winners, losers, scoreDelta);
+
+            return GetPlayersChange(teams, scoreDelta);
         }
 
         private int CalculateScoreDelta(double averageWinningRating, double averageLosingRating)
@@ -44,7 +47,7 @@ namespace Server.Services
             var scoreDeltaDouble =
                 -(averageWinningRating - averageLosingRating) /
                 DivisionPoints; // e.g. - (1900 - 2100) / 40 = 5. Meaning winning team will get 5 more points 
-                                 // than the base as their average was weaker
+                                // than the base as their average was weaker
             var scoreDelta =
                 Convert.ToInt32(Math.Round(scoreDeltaDouble, 0,
                     MidpointRounding.AwayFromZero)); // we don't do a conversion straight to the double
@@ -52,33 +55,30 @@ namespace Server.Services
             return Math.Min(scoreDelta, MaximumDelta);
         }
 
-        private async Task UpdateRating(IEnumerable<Player> winningTeam, IEnumerable<Player> losingTeam, int scoreDelta)
+        private Dictionary<ulong, PlayerRatingChange> GetPlayersChange(Dictionary<Player, GameResult> teams, int scoreDelta)
         {
-            foreach (var player in winningTeam)
-                player.Rating12v12 += BaseRating + scoreDelta;
-            foreach (var player in losingTeam)
-                player.Rating12v12 -= BaseRating + scoreDelta;
-            _context.UpdateRange(winningTeam);
-            _context.UpdateRange(losingTeam);
-        }
-
-        public Dictionary<GameResult, List<Player>> SplitTeams(Dictionary<string, ushort> playersKvp, ushort winnerTeam, List<Player> players)
-        {
-            var teamsSplit = new Dictionary<GameResult, List<Player>>()
+            var result = new Dictionary<ulong, PlayerRatingChange>();
+            foreach (var playerTeam in teams)
             {
-                { GameResult.Winner, new List<Player>() },
-                { GameResult.Loser, new List<Player>() }
-            };
-            foreach (var player in players)
-            {
-                var playerTeam = playersKvp[player.SteamId.ToString()];
-                if (playerTeam == winnerTeam)
-                    teamsSplit[GameResult.Winner].Add(player);
+                var playerChange = new PlayerRatingChange() { Old = playerTeam.Key.Rating12v12.ToString() };
+                if (playerTeam.Value == GameResult.Winner)
+                    playerTeam.Key.Rating12v12 += BaseRating + scoreDelta;
                 else
-                    teamsSplit[GameResult.Loser].Add(player);
+                    playerTeam.Key.Rating12v12  = playerTeam.Key.Rating12v12 < BaseRating + scoreDelta ? 0 : playerTeam.Key.Rating12v12 - (BaseRating + scoreDelta);
+                playerChange.New = playerTeam.Key.Rating12v12.ToString();
+                result.Add(playerTeam.Key.SteamId, playerChange);
             }
 
-            return teamsSplit;
+            return result;
+        }
+
+        private Dictionary<Player, GameResult> SplitTeams(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam, List<Player> players)
+        {
+            var matchPlayersKvp = matchPlayers.ToDictionary(mp => mp.SteamId, mp => mp.Team);
+            var result = new Dictionary<Player, GameResult>();
+            foreach (var player in players)
+                result.Add(player, matchPlayersKvp[player.SteamId] == winnerTeam ? GameResult.Winner : GameResult.Loser);
+            return result;
         }
     }
 
@@ -88,9 +88,15 @@ namespace Server.Services
         Loser
     }
 
-    public class LeaderBoardPlayer
+    public class LeaderboardPlayer
     {
-        public ulong SteamId { get; set; }
-        public int Rating { get; set; }
+        public string SteamId { get; set; }
+        public string Rating { get; set; }
+    }
+
+    public class PlayerRatingChange
+    {
+        public string Old { get; set; }
+        public string New { get; set; }
     }
 }

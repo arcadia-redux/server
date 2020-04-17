@@ -12,7 +12,7 @@ using Server.Services;
 
 namespace Server.Controllers
 {
-    [Authorize]
+    //[Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class MatchController : ControllerBase
@@ -87,8 +87,8 @@ namespace Server.Controllers
             var mapName = request.MapName;
 
             var realSteamIds = request.Players.Select(ulong.Parse).ToList();
-            // We need to do another call in order to get the top players for leaderBoard
-            List<LeaderBoardPlayer> topPlayers = await _ratingService.GetTopPlayers();
+            // We need to do another call in order to get the top players for Leaderboard
+            List<LeaderboardPlayer> topPlayers = await _ratingService.GetTopPlayers();
             var responses = await _context.Players
                 .Where(p => realSteamIds.Contains(p.SteamId))
                 .Select(p => new
@@ -204,7 +204,7 @@ namespace Server.Controllers
                         return player;
                     })
                     .ToList(),
-                LeaderBoard = topPlayers
+                Leaderboard = topPlayers
             };
         }
 
@@ -268,18 +268,20 @@ namespace Server.Controllers
             _context.AddRange(newPlayers);
             _context.Matches.Add(match);
 
-            var playersKvp = request.Players.ToDictionary(x => x.SteamId, x => x.Team);
-            var teams = _ratingService.SplitTeams(playersKvp, request.Winner, allPlayers);
-            await _ratingService.UpdateNewRating(teams[GameResult.Winner], teams[GameResult.Loser]);
+            var ratingChanges = request.CustomGame == CustomGame.Dota12v12 ? _ratingService.RecordRankedMatch(match.Players, request.Winner, allPlayers) : null;
+            
+            _context.UpdateRange(allPlayers);
             await _context.SaveChangesAsync();
+
             return new AfterMatchResponse()
             {
-                Players = allPlayers.Select(p => new AfterMatchResponse.Player()
-                {
-                    SteamId = p.SteamId.ToString(),
-                    OldRating = oldPlayerRatings[p.SteamId],
-                    NewRating = p.Rating12v12,
-                }),
+                Players = allPlayers
+                    .Select(p => new AfterMatchResponse.Player()
+                    {
+                        SteamId = p.SteamId.ToString(),
+                        RatingChange = ratingChanges?[p.SteamId],
+                    })
+                    .ToList(),
             };
         }
 
@@ -333,6 +335,17 @@ namespace Server.Controllers
         }
     }
 
+    public class AfterMatchResponse
+    {
+        public IEnumerable<Player> Players { get; set; }
+
+        public class Player
+        {
+            public string SteamId { get; set; }
+            public PlayerRatingChange RatingChange { get; set; }
+        }
+    }
+
     public class AutoPickRequest
     {
         [Required] public string MapName { get; set; }
@@ -361,7 +374,7 @@ namespace Server.Controllers
     public class BeforeMatchResponse
     {
         public IEnumerable<Player> Players { get; set; }
-        public IEnumerable<LeaderBoardPlayer> LeaderBoard { get; set; }
+        public IEnumerable<LeaderboardPlayer> Leaderboard { get; set; }
 
         public class Player
         {
@@ -392,17 +405,5 @@ namespace Server.Controllers
     public class MatchEventsRequest
     {
         [Required] public long MatchId { get; set; }
-    }
-
-    public class AfterMatchResponse
-    {
-        public IEnumerable<Player> Players { get; set; }
-
-        public class Player
-        {
-            public string SteamId { get; set; }
-            public int OldRating { get; set; }
-            public int NewRating { get; set; }
-        }
     }
 }
