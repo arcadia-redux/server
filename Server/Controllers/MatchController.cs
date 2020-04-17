@@ -220,7 +220,7 @@ namespace Server.Controllers
 
             var newPlayers = request.Players
                 .Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
-                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = 2000 })
+                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = Player.DefaultRating })
                 .ToList();
             var allPlayers = existingPlayers.Union(newPlayers).ToList();
             var oldPlayerRatings = allPlayers.ToDictionary(p => p.SteamId, p => p.Rating12v12);

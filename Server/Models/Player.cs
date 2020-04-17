@@ -7,6 +7,8 @@ namespace Server.Models
 {
     public class Player
     {
+        public const int DefaultRating = 2000;
+
         [Key] public ulong SteamId { get; set; }
         public string? Comment { get; set; }
         public IEnumerable<MatchPlayer> Matches { get; set; } = null!;
