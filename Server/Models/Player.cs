@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 #nullable enable
 namespace Server.Models
@@ -17,5 +18,7 @@ namespace Server.Models
         public string? PatreonEmblemColor { get; set; }
         public bool? PatreonBootsEnabled { get; set; }
         public List<int>? PatreonChatWheelFavorites { get; set; }
+        [Column(TypeName = "jsonb")]
+        public Dictionary<string, object>? PatreonCosmetics { get; set; }
     }
 }

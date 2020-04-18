@@ -1,13 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using Server.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Server.Models;
 
 namespace Server.Controllers
 {
@@ -98,6 +98,7 @@ namespace Server.Controllers
                             EmblemColor = p.PatreonEmblemColor ?? "White",
                             BootsEnabled = p.PatreonBootsEnabled ?? true,
                             ChatWheelFavorites = p.PatreonChatWheelFavorites ?? new List<int>(),
+                            Cosmetics = p.PatreonCosmetics,
                         },
                     Matches = p.Matches
                         .Where(m => m.Match.CustomGame == customGame)
@@ -228,6 +229,7 @@ namespace Server.Controllers
                 player.PatreonEmblemEnabled = playerUpdate.PatreonUpdate.EmblemEnabled;
                 player.PatreonEmblemColor = playerUpdate.PatreonUpdate.EmblemColor;
                 player.PatreonChatWheelFavorites = playerUpdate.PatreonUpdate.ChatWheelFavorites;
+                player.PatreonCosmetics = playerUpdate.PatreonUpdate.Cosmetics;
             }
 
             var match = new Match
@@ -310,6 +312,7 @@ namespace Server.Controllers
             public bool BootsEnabled { get; set; }
             // TODO: Required?
             public List<int>? ChatWheelFavorites { get; set; }
+            public Dictionary<string, object>? Cosmetics { get; set; }
         }
     }
 
@@ -365,6 +368,7 @@ namespace Server.Controllers
             public string EmblemColor { get; set; }
             public bool BootsEnabled { get; set; }
             public List<int> ChatWheelFavorites { get; set; }
+            public Dictionary<string, object>? Cosmetics { get; set; }
         }
     }
 
