@@ -28,9 +28,9 @@ namespace Server.Services
                             .ToListAsync();
         }
 
-        public Dictionary<ulong, PlayerRatingChange> RecordRankedMatch(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam, List<Player> players)
+        public Dictionary<ulong, PlayerRatingChange> RecordRankedMatch(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam)
         {
-            var teams = SplitTeams(matchPlayers, winnerTeam, players);
+            var teams = SplitTeams(matchPlayers, winnerTeam);
 
             var averageWinningRating = teams.Where(x => x.Value == GameResult.Winner).Average(p => p.Key.Rating12v12);
             var averageLosingRating = teams.Where(x => x.Value == GameResult.Loser).Average(p => p.Key.Rating12v12);
@@ -66,12 +66,11 @@ namespace Server.Services
             return result;
         }
 
-        private Dictionary<Player, GameResult> SplitTeams(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam, List<Player> players)
+        private Dictionary<Player, GameResult> SplitTeams(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam)
         {
-            var matchPlayersKvp = matchPlayers.ToDictionary(mp => mp.SteamId, mp => mp.Team);
             var result = new Dictionary<Player, GameResult>();
-            foreach (var player in players)
-                result.Add(player, matchPlayersKvp[player.SteamId] == winnerTeam ? GameResult.Winner : GameResult.Loser);
+            foreach (var matchPlayer in matchPlayers)
+                result.Add(matchPlayer.Player, matchPlayer.Team == winnerTeam ? GameResult.Winner : GameResult.Loser);
             return result;
         }
     }

@@ -220,7 +220,6 @@ namespace Server.Controllers
                 .Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
                 .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = Player.DefaultRating })
                 .ToList();
-            var allPlayers = existingPlayers.Union(newPlayers).ToList();
 
             foreach (var playerUpdate in request.Players.Where(p => p.PatreonUpdate != null))
             {
@@ -261,17 +260,17 @@ namespace Server.Controllers
                     Level = p.Level,
                 })
                 .ToList();
-
             _context.AddRange(newPlayers);
             _context.Matches.Add(match);
 
-            var ratingChanges = request.CustomGame == CustomGame.Dota12v12 ? _ratingService.RecordRankedMatch(match.Players, request.Winner, allPlayers) : null;
+            var ratingChanges = request.CustomGame == CustomGame.Dota12v12 ? _ratingService.RecordRankedMatch(match.Players, request.Winner) : null;
             
             await _context.SaveChangesAsync();
 
             return new AfterMatchResponse()
             {
-                Players = allPlayers
+                Players = match.Players
+                    .OrderByDescending(p => p.Player.Rating12v12)
                     .Select(p => new AfterMatchResponse.Player()
                     {
                         SteamId = p.SteamId.ToString(),
