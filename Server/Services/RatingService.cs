@@ -24,7 +24,7 @@ namespace Server.Services
             return await _context.Players
                             .OrderByDescending(p => p.Rating12v12)
                             .Take(NumberOfTopPlayers)
-                            .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = p.Rating12v12.ToString() })
+                            .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = p.Rating12v12 })
                             .ToListAsync();
         }
 
@@ -84,7 +84,7 @@ namespace Server.Services
     public class LeaderboardPlayer
     {
         public string SteamId { get; set; }
-        public string Rating { get; set; }
+        public int Rating { get; set; }
     }
 
     public class PlayerRatingChange

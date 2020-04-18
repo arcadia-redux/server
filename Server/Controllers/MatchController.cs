@@ -270,7 +270,6 @@ namespace Server.Controllers
             return new AfterMatchResponse()
             {
                 Players = match.Players
-                    .OrderByDescending(p => p.Player.Rating12v12)
                     .Select(p => new AfterMatchResponse.Player()
                     {
                         SteamId = p.SteamId.ToString(),
