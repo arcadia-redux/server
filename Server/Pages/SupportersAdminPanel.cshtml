@@ -5,6 +5,10 @@
 @using Server.Pages
 @model Server.Pages.SupportersAdminPanelModel
 
+@{
+    ViewBag.Title = "Supporters Admin Panel";
+}
+
 @functions {
     private const string UrlPattern = @"(((?<scheme>http(s)?):\/\/)?([\w-]+?\.\w+)+([a-zA-Z0-9\~\!\@\#\$\%\^\&amp;\*\(\)_\-\=\+\\\/\?\.\:\;\,]*)?)";
 
@@ -12,10 +16,6 @@
     {
         return Regex.Replace(str, UrlPattern, "<a href=\"$1\" target=\"_blank\">$1</a>");
     }
-}
-
-@{
-    ViewBag.Title = "Supporters Admin Panel";
 }
 
 <h1>Add/update user</h1>
@@ -65,10 +65,12 @@
                 }
                 else
                 {
-                    @("(managed manually)")
+                    <text>(managed manually)</text>
                 }
             </td>
         </tr>
     }
     </tbody>
 </table>
+
+...@(await Model.GetExpiredSupporterCount()) expired supporters
