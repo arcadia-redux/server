@@ -12,7 +12,7 @@ using Server.Services;
 
 namespace Server.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class MatchController : ControllerBase
@@ -221,7 +221,6 @@ namespace Server.Controllers
                 .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = Player.DefaultRating })
                 .ToList();
             var allPlayers = existingPlayers.Union(newPlayers).ToList();
-            var oldPlayerRatings = allPlayers.ToDictionary(p => p.SteamId, p => p.Rating12v12);
 
             foreach (var playerUpdate in request.Players.Where(p => p.PatreonUpdate != null))
             {
@@ -268,7 +267,6 @@ namespace Server.Controllers
 
             var ratingChanges = request.CustomGame == CustomGame.Dota12v12 ? _ratingService.RecordRankedMatch(match.Players, request.Winner, allPlayers) : null;
             
-            _context.UpdateRange(allPlayers);
             await _context.SaveChangesAsync();
 
             return new AfterMatchResponse()

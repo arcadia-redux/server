@@ -43,7 +43,7 @@ namespace Server.Models
 
             builder.Entity<Player>()
                 .Property(s => s.Rating12v12)
-                .HasDefaultValue(2000);
+                .HasDefaultValue(Player.DefaultRating);
         }
     }
 }

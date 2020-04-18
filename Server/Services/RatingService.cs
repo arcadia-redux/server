@@ -11,9 +11,8 @@ namespace Server.Services
     {
         private readonly AppDbContext _context;
         private const int NumberOfTopPlayers = 100;
-        private const int MaximumDelta = 25;
-        private const int BaseRating = 30;
-        private const int DivisionPoints = 40;
+        private const int MaximumRatingChange = 55;
+        private const int BaseRatingChange = 30;
 
         public RatingService(AppDbContext context)
         {
@@ -26,7 +25,6 @@ namespace Server.Services
                             .OrderByDescending(p => p.Rating12v12)
                             .Take(NumberOfTopPlayers)
                             .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = p.Rating12v12.ToString() })
-                            .OrderByDescending(p => p.Rating)
                             .ToListAsync();
         }
 
@@ -44,15 +42,11 @@ namespace Server.Services
 
         private int CalculateScoreDelta(double averageWinningRating, double averageLosingRating)
         {
-            var scoreDeltaDouble =
-                -(averageWinningRating - averageLosingRating) /
-                DivisionPoints; // e.g. - (1900 - 2100) / 40 = 5. Meaning winning team will get 5 more points 
-                                // than the base as their average was weaker
-            var scoreDelta =
-                Convert.ToInt32(Math.Round(scoreDeltaDouble, 0,
-                    MidpointRounding.AwayFromZero)); // we don't do a conversion straight to the double
-                                                     // as it will do a MidpointRounding.ToEven by default
-            return Math.Min(scoreDelta, MaximumDelta);
+            // e.g. -(1900 - 2100) / 40 = 5. Meaning winning team will get 5 more points 
+            // than the base as their average was weaker
+            var scoreDeltaDouble = -(averageWinningRating - averageLosingRating) / 40;
+            var scoreDelta = (int)(Math.Round(scoreDeltaDouble, 0, MidpointRounding.AwayFromZero));
+            return Math.Min(BaseRatingChange + scoreDelta, MaximumRatingChange);
         }
 
         private Dictionary<ulong, PlayerRatingChange> GetPlayersChange(Dictionary<Player, GameResult> teams, int scoreDelta)
@@ -60,12 +54,12 @@ namespace Server.Services
             var result = new Dictionary<ulong, PlayerRatingChange>();
             foreach (var playerTeam in teams)
             {
-                var playerChange = new PlayerRatingChange() { Old = playerTeam.Key.Rating12v12.ToString() };
+                var playerChange = new PlayerRatingChange() { Old = playerTeam.Key.Rating12v12 };
                 if (playerTeam.Value == GameResult.Winner)
-                    playerTeam.Key.Rating12v12 += BaseRating + scoreDelta;
+                    playerTeam.Key.Rating12v12 += scoreDelta;
                 else
-                    playerTeam.Key.Rating12v12  = playerTeam.Key.Rating12v12 < BaseRating + scoreDelta ? 0 : playerTeam.Key.Rating12v12 - (BaseRating + scoreDelta);
-                playerChange.New = playerTeam.Key.Rating12v12.ToString();
+                    playerTeam.Key.Rating12v12 = Math.Max(playerTeam.Key.Rating12v12 - scoreDelta, 0);
+                playerChange.New = playerTeam.Key.Rating12v12;
                 result.Add(playerTeam.Key.SteamId, playerChange);
             }
 
@@ -96,7 +90,7 @@ namespace Server.Services
 
     public class PlayerRatingChange
     {
-        public string Old { get; set; }
-        public string New { get; set; }
+        public int Old { get; set; }
+        public int New { get; set; }
     }
 }
