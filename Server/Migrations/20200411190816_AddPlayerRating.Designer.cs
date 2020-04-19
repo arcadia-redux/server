@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Server.Models;
@@ -10,9 +11,10 @@ using Server.Models;
 namespace Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20200411190816_AddPlayerRating")]
+    partial class AddPlayerRating
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -118,9 +120,6 @@ namespace Server.Migrations
 
                     b.Property<List<int>>("PatreonChatWheelFavorites")
                         .HasColumnType("integer[]");
-
-                    b.Property<Dictionary<string, object>>("PatreonCosmetics")
-                        .HasColumnType("jsonb");
 
                     b.Property<string>("PatreonEmblemColor")
                         .HasColumnType("text");

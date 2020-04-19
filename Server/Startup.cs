@@ -26,6 +26,7 @@ namespace Server
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddScoped<StripeService>();
+            services.AddScoped<RatingService>();
             services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseNpgsql(Configuration.GetConnectionString("Database"));

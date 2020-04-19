@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Server.Models;
+using Server.Services;
 
 namespace Server.Controllers
 {
@@ -18,11 +19,13 @@ namespace Server.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger _logger;
+        private readonly RatingService _ratingService;
 
-        public MatchController(AppDbContext context, ILogger<MatchController> logger)
+        public MatchController(AppDbContext context, ILogger<MatchController> logger, RatingService ratingService)
         {
             _context = context;
             _logger = logger;
+            _ratingService = ratingService;
         }
 
         [HttpPost]
@@ -89,6 +92,7 @@ namespace Server.Controllers
                 .Select(p => new
                 {
                     SteamId = p.SteamId.ToString(),
+                    p.Rating12v12,
                     Patreon =
                         new BeforeMatchResponse.Patreon()
                         {
@@ -113,7 +117,7 @@ namespace Server.Controllers
                             mp.Hero,
                             IsWinner = mp.Team == mp.Match.Winner,
                         })
-                        .ToList(),
+                        .ToList()
                 })
                 .ToListAsync();
 
@@ -198,13 +202,14 @@ namespace Server.Controllers
 
                         return player;
                     })
-                    .ToList()
+                    .ToList(),
+                Leaderboard = customGame == CustomGame.Dota12v12 ? await _ratingService.GetLeaderboard() : null,
             };
         }
 
         [HttpPost]
         [Route("after")]
-        public async Task<ActionResult> After([FromBody] AfterMatchRequest request)
+        public async Task<AfterMatchResponse> After([FromBody] AfterMatchRequest request)
         {
             var requestedSteamIds = request.Players.Select(p => ulong.Parse(p.SteamId)).ToList();
 
@@ -214,7 +219,7 @@ namespace Server.Controllers
 
             var newPlayers = request.Players
                 .Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
-                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId) })
+                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = Player.DefaultRating })
                 .ToList();
 
             foreach (var playerUpdate in request.Players.Where(p => p.PatreonUpdate != null))
@@ -257,12 +262,23 @@ namespace Server.Controllers
                     Level = p.Level,
                 })
                 .ToList();
-
             _context.AddRange(newPlayers);
             _context.Matches.Add(match);
+
+            var ratingChanges = request.CustomGame == CustomGame.Dota12v12 ? _ratingService.RecordRankedMatch(match.Players, request.Winner) : null;
+
             await _context.SaveChangesAsync();
 
-            return Ok();
+            return new AfterMatchResponse()
+            {
+                Players = match.Players
+                    .Select(p => new AfterMatchResponse.Player()
+                    {
+                        SteamId = p.SteamId.ToString(),
+                        RatingChange = ratingChanges?[p.SteamId],
+                    })
+                    .ToList(),
+            };
         }
 
         [HttpPost]
@@ -316,6 +332,17 @@ namespace Server.Controllers
         }
     }
 
+    public class AfterMatchResponse
+    {
+        public IEnumerable<Player> Players { get; set; }
+
+        public class Player
+        {
+            public string SteamId { get; set; }
+            public PlayerRatingChange RatingChange { get; set; }
+        }
+    }
+
     public class AutoPickRequest
     {
         [Required] public string MapName { get; set; }
@@ -344,6 +371,7 @@ namespace Server.Controllers
     public class BeforeMatchResponse
     {
         public IEnumerable<Player> Players { get; set; }
+        public IEnumerable<LeaderboardPlayer> Leaderboard { get; set; }
 
         public class Player
         {
