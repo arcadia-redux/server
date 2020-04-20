@@ -24,6 +24,6 @@ namespace Server.Models
         public Dictionary<string, object>? PatreonCosmetics { get; set; }
         public int Rating12v12 { get; set; }
         [Column(TypeName = "jsonb")]
-        public Dictionary<string, object>? RatingOverthrow { get; set; }
+        public Dictionary<string, int> RatingOverthrow { get; set; }
     }
 }

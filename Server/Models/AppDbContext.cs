@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -49,9 +50,11 @@ namespace Server.Models
                 .Property(s => s.Rating12v12)
                 .HasDefaultValue(Player.DefaultRating);
 
+
+            var ratingOverthrowDefaultDictionary = Enum.GetValues(typeof(MapEnum)).Cast<MapEnum>().ToDictionary(t => t.GetDescription(), t => Player.DefaultRating);
             builder.Entity<Player>()
                 .Property(s => s.RatingOverthrow)
-                .HasDefaultValue(Enum.GetValues(typeof(MapEnum)).Cast<MapEnum>().ToDictionary(t => t.GetDescription(), t => Player.DefaultRating));
+                .HasDefaultValueSql($"'{JsonSerializer.Serialize(ratingOverthrowDefaultDictionary, jsonSerializerOptions)}'");
         }
     }
 }
