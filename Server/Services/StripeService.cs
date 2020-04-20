@@ -1,13 +1,13 @@
-﻿using Microsoft.Extensions.Configuration;
-using Stripe;
-using Microsoft.Extensions.Logging;
+﻿using System;
 using System.Collections.Generic;
-using Server.Models;
-using System;
-using System.Text.Json.Serialization;
 using System.Text.Json;
-using Microsoft.AspNetCore.WebUtilities;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Server.Models;
+using Stripe;
 
 namespace Server.Services
 {
@@ -76,7 +76,7 @@ namespace Server.Services
             ValidatePaymentKind(player, paymentKind);
 
             // 1 AUD = $conversionRate CNY
-            var conversionRate = 4.18749;
+            var conversionRate = 4.54665;
             // 50 CNY
             var priceTier1 = (int)Math.Floor((50 / conversionRate) * 100);
             // 200 CNY
