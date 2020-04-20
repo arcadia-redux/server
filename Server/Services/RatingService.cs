@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Hosting;
+using Server.Enums;
+using Server.Helpers;
 using Server.Models;
 
 namespace Server.Services
@@ -29,11 +31,11 @@ namespace Server.Services
             await _cache.GetOrCreateAsync(CacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = _environment.IsProduction() ? TimeSpan.FromMinutes(5) : TimeSpan.FromTicks(1);
-                Expression<Func<Player, object>> orderQuery = p => customGame == CustomGame.Dota12v12 ? p.Rating12v12 : p.RatingOverthrow.FirstOrDefault(x => x.Key == mapName).Value;
+                Expression<Func<Player, object>> orderQuery = p => customGame == CustomGame.Dota12v12 ? p.Rating12v12 : p.PlayerOverthrowRating.FirstOrDefault(x => x.MapName == mapName).Rating;
                 return await _context.Players
                     .OrderByDescending(orderQuery)
                     .Take(100)
-                    .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = customGame == CustomGame.Dota12v12 ? p.Rating12v12 : p.RatingOverthrow.FirstOrDefault(x => x.Key == mapName).Value })
+                    .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = customGame == CustomGame.Dota12v12 ? p.Rating12v12 : p.PlayerOverthrowRating.FirstOrDefault(x => x.MapName == mapName).Rating })
                     .ToListAsync();
             });
 

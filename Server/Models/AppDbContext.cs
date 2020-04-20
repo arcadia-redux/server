@@ -51,10 +51,13 @@ namespace Server.Models
                 .HasDefaultValue(Player.DefaultRating);
 
 
-            var ratingOverthrowDefaultDictionary = Enum.GetValues(typeof(MapEnum)).Cast<MapEnum>().ToDictionary(t => t.GetDescription(), t => Player.DefaultRating);
             builder.Entity<Player>()
-                .Property(s => s.RatingOverthrow)
-                .HasDefaultValueSql($"'{JsonSerializer.Serialize(ratingOverthrowDefaultDictionary, jsonSerializerOptions)}'");
+                .OwnsMany(p => p.PlayerOverthrowRating, a =>
+                {
+                    a.WithOwner().HasForeignKey("SteamId");
+                    a.Property<ulong>("SteamId");
+                    a.HasKey("SteamId", "MapName");
+                });
         }
     }
 }
