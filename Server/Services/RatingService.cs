@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -24,14 +25,15 @@ namespace Server.Services
             _cache = cache;
         }
 
-        public async Task<List<LeaderboardPlayer>> GetLeaderboard() =>
+        public async Task<List<LeaderboardPlayer>> GetLeaderboard(CustomGame customGame, string mapName) =>
             await _cache.GetOrCreateAsync(CacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = _environment.IsProduction() ? TimeSpan.FromMinutes(5) : TimeSpan.FromTicks(1);
+                Expression<Func<Player, object>> orderQuery = p => customGame == CustomGame.Dota12v12 ? p.Rating12v12 : p.RatingOverthrow[mapName];
                 return await _context.Players
-                    .OrderByDescending(p => p.Rating12v12)
+                    .OrderByDescending(orderQuery)
                     .Take(100)
-                    .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = p.Rating12v12 })
+                    .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = customGame == CustomGame.Dota12v12 ? p.Rating12v12 : (int)p.RatingOverthrow[mapName] })
                     .ToListAsync();
             });
 

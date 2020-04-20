@@ -23,5 +23,7 @@ namespace Server.Models
         [Column(TypeName = "jsonb")]
         public Dictionary<string, object>? PatreonCosmetics { get; set; }
         public int Rating12v12 { get; set; }
+        [Column(TypeName = "jsonb")]
+        public Dictionary<string, object>? RatingOverthrow { get; set; }
     }
 }

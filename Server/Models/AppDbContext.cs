@@ -1,5 +1,9 @@
+using System;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Server.Enums;
+using Server.Helpers;
 
 namespace Server.Models
 {
@@ -44,6 +48,10 @@ namespace Server.Models
             builder.Entity<Player>()
                 .Property(s => s.Rating12v12)
                 .HasDefaultValue(Player.DefaultRating);
+
+            builder.Entity<Player>()
+                .Property(s => s.RatingOverthrow)
+                .HasDefaultValue(Enum.GetValues(typeof(MapEnum)).Cast<MapEnum>().ToDictionary(t => t.GetDescription(), t => Player.DefaultRating));
         }
     }
 }

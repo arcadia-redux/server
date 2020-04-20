@@ -12,7 +12,7 @@ using Server.Services;
 
 namespace Server.Controllers
 {
-    [Authorize]
+    //[Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class MatchController : ControllerBase
@@ -203,7 +203,7 @@ namespace Server.Controllers
                         return player;
                     })
                     .ToList(),
-                Leaderboard = customGame == CustomGame.Dota12v12 ? await _ratingService.GetLeaderboard() : null,
+                Leaderboard = await _ratingService.GetLeaderboard(customGame, mapName),
             };
         }
 
