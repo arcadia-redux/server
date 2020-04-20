@@ -120,7 +120,7 @@ namespace Server.Controllers
                         .ToList()
                 })
                 .ToListAsync();
-            var playersTop = await _ratingService.GetLeaderboard(customGame, mapName);
+            
             return new BeforeMatchResponse()
             {
                 Players = request.Players
@@ -203,7 +203,7 @@ namespace Server.Controllers
                         return player;
                     })
                     .ToList(),
-                Leaderboard = playersTop,
+                Leaderboard = await _ratingService.GetLeaderboard(customGame, mapName),
             };
         }
 
@@ -319,6 +319,7 @@ namespace Server.Controllers
             // TODO: We don't store it anymore
             [Required] public List<object> Items { get; set; }
             public PatreonUpdate PatreonUpdate { get; set; }
+            public DateTime LastKill { get; set; }
         }
 
         public class PatreonUpdate

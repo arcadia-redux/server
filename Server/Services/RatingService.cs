@@ -39,6 +39,7 @@ namespace Server.Services
                     .ToListAsync();
             });
 
+        #region 12v12 
         public Dictionary<ulong, PlayerRatingChange> RecordRankedMatch(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam)
         {
             var teams = SplitTeams(matchPlayers, winnerTeam);
@@ -85,6 +86,18 @@ namespace Server.Services
             foreach (var matchPlayer in matchPlayers)
                 result.Add(matchPlayer.Player, matchPlayer.Team == winnerTeam ? GameResult.Winner : GameResult.Loser);
             return result;
+        }
+        #endregion
+
+        public Dictionary<ulong, PlayerRatingChange> RecordRankedMatchOverwatch(IEnumerable<MatchPlayer> matchPlayers, string mapName)
+        {
+            var teams = matchPlayers
+                .GroupBy(t => t.Team)
+                .OrderByDescending(g => g.Sum(p => p.Kills))
+                .ThenBy(g => g.Max(p => p.LastKill))
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            return null;
         }
     }
 
