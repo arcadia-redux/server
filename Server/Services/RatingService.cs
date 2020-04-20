@@ -29,11 +29,11 @@ namespace Server.Services
             await _cache.GetOrCreateAsync(CacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = _environment.IsProduction() ? TimeSpan.FromMinutes(5) : TimeSpan.FromTicks(1);
-                Expression<Func<Player, object>> orderQuery = p => customGame == CustomGame.Dota12v12 ? p.Rating12v12 : p.RatingOverthrow[mapName];
+                Expression<Func<Player, object>> orderQuery = p => customGame == CustomGame.Dota12v12 ? p.Rating12v12 : p.RatingOverthrow.FirstOrDefault(x => x.Key == mapName).Value;
                 return await _context.Players
                     .OrderByDescending(orderQuery)
                     .Take(100)
-                    .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = customGame == CustomGame.Dota12v12 ? p.Rating12v12 : (int)p.RatingOverthrow[mapName] })
+                    .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = customGame == CustomGame.Dota12v12 ? p.Rating12v12 : p.RatingOverthrow.FirstOrDefault(x => x.Key == mapName).Value })
                     .ToListAsync();
             });
 

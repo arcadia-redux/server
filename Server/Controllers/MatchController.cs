@@ -120,7 +120,7 @@ namespace Server.Controllers
                         .ToList()
                 })
                 .ToListAsync();
-
+            var playersTop = await _ratingService.GetLeaderboard(customGame, mapName);
             return new BeforeMatchResponse()
             {
                 Players = request.Players
@@ -203,7 +203,7 @@ namespace Server.Controllers
                         return player;
                     })
                     .ToList(),
-                Leaderboard = await _ratingService.GetLeaderboard(customGame, mapName),
+                Leaderboard = playersTop,
             };
         }
 
