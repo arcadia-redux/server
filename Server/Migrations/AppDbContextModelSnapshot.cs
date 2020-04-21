@@ -107,6 +107,7 @@ namespace Server.Migrations
             modelBuilder.Entity("Server.Models.Player", b =>
                 {
                     b.Property<decimal>("SteamId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("numeric(20,0)");
 
                     b.Property<string>("Comment")
