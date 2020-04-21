@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Server.Enums;
 using Server.Helpers;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Server.Models
 {
@@ -54,9 +55,7 @@ namespace Server.Models
             builder.Entity<Player>()
                 .OwnsMany(p => p.PlayerOverthrowRating, a =>
                 {
-                    a.WithOwner().HasForeignKey("SteamId");
-                    a.Property<ulong>("SteamId");
-                    a.HasKey("SteamId", "MapName");
+                    a.HasKey("PlayerSteamId", "MapName");
                 });
         }
     }

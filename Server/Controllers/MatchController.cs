@@ -120,7 +120,7 @@ namespace Server.Controllers
                         .ToList()
                 })
                 .ToListAsync();
-            
+
             return new BeforeMatchResponse()
             {
                 Players = request.Players
@@ -219,7 +219,7 @@ namespace Server.Controllers
 
             var newPlayers = request.Players
                 .Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
-                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = Player.DefaultRating , PlayerOverthrowRating = PlayerOverthrowRating.GetDefaultRatings()})
+                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = Player.DefaultRating, PlayerOverthrowRating = PlayerOverthrowRating.GetDefaultRatings() })
                 .ToList();
 
             foreach (var playerUpdate in request.Players.Where(p => p.PatreonUpdate != null))
@@ -263,10 +263,11 @@ namespace Server.Controllers
                     LastKill = p.LastKill,
                 })
                 .ToList();
+
             _context.AddRange(newPlayers);
             _context.Matches.Add(match);
 
-            var ratingChanges = request.CustomGame == CustomGame.Dota12v12 ? 
+            var ratingChanges = request.CustomGame == CustomGame.Dota12v12 ?
                 _ratingService.RecordRankedMatch12v12(match.Players, request.Winner) : _ratingService.RecordRankedMatchOverwatch(match.Players, request.MapName);
 
             await _context.SaveChangesAsync();

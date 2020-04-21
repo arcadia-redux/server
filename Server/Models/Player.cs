@@ -43,7 +43,8 @@ namespace Server.Models
                 {
                     MapName = e.GetDescription(),
                     Rating = DefaultRating
-                });
+                })
+                .ToList();
         }
     }
 }

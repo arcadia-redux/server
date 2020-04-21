@@ -11,7 +11,7 @@ using Server.Models;
 namespace Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20200420165242_AddPlayerOverthrowRating")]
+    [Migration("20200421183752_AddPlayerOverthrowRating")]
     partial class AddPlayerOverthrowRating
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -109,7 +109,6 @@ namespace Server.Migrations
             modelBuilder.Entity("Server.Models.Player", b =>
                 {
                     b.Property<decimal>("SteamId")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("numeric(20,0)");
 
                     b.Property<string>("Comment")
@@ -165,7 +164,7 @@ namespace Server.Migrations
                 {
                     b.OwnsMany("Server.Models.PlayerOverthrowRating", "PlayerOverthrowRating", b1 =>
                         {
-                            b1.Property<decimal>("SteamId")
+                            b1.Property<decimal>("PlayerSteamId")
                                 .HasColumnType("numeric(20,0)");
 
                             b1.Property<string>("MapName")
@@ -174,12 +173,12 @@ namespace Server.Migrations
                             b1.Property<int>("Rating")
                                 .HasColumnType("integer");
 
-                            b1.HasKey("SteamId", "MapName");
+                            b1.HasKey("PlayerSteamId", "MapName");
 
                             b1.ToTable("PlayerOverthrowRating");
 
                             b1.WithOwner()
-                                .HasForeignKey("SteamId");
+                                .HasForeignKey("PlayerSteamId");
                         });
                 });
 #pragma warning restore 612, 618
