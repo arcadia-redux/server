@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -24,18 +25,21 @@ namespace Server.Services
             _cache = cache;
         }
 
-        public async Task<List<LeaderboardPlayer>> GetLeaderboard() =>
+        public async Task<List<LeaderboardPlayer>> GetLeaderboard(CustomGame customGame, string mapName) =>
             await _cache.GetOrCreateAsync(CacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = _environment.IsProduction() ? TimeSpan.FromMinutes(5) : TimeSpan.FromTicks(1);
+                Expression<Func<Player, object>> orderQuery = p => customGame == CustomGame.Dota12v12 ? p.Rating12v12 : p.PlayerOverthrowRating.FirstOrDefault(x => x.MapName == mapName).Rating;
                 return await _context.Players
-                    .OrderByDescending(p => p.Rating12v12)
+                    .OrderByDescending(orderQuery)
                     .Take(100)
-                    .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = p.Rating12v12 })
+                    .Select(p => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = customGame == CustomGame.Dota12v12 ? p.Rating12v12 : p.PlayerOverthrowRating.FirstOrDefault(x => x.MapName == mapName).Rating })
                     .ToListAsync();
             });
 
-        public Dictionary<ulong, PlayerRatingChange> RecordRankedMatch(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam)
+        #region 12v12 
+        private const int BaseRatingChange12V12 = 30;
+        public Dictionary<ulong, PlayerRatingChange> RecordRankedMatch12v12(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam)
         {
             var teams = SplitTeams(matchPlayers, winnerTeam);
 
@@ -44,21 +48,18 @@ namespace Server.Services
             // Formula is the difference between loosing and winning team of avg rating divided by 40
             var scoreDelta = CalculateScoreDelta(averageWinningRating, averageLosingRating);
 
-            return GetPlayersChange(teams, scoreDelta);
+            return GetPlayersChange12v12(teams, BaseRatingChange12V12 + scoreDelta);
         }
 
-        private const int BaseRatingChange = 30;
-        private const int MaximumRatingChange = 55;
-        private int CalculateScoreDelta(double averageWinningRating, double averageLosingRating)
+        private Dictionary<Player, GameResult> SplitTeams(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam)
         {
-            // e.g. -(1900 - 2100) / 40 = 5. Meaning winning team will get 5 more points
-            // than the base as their average was weaker
-            var scoreDeltaDouble = -(averageWinningRating - averageLosingRating) / 40;
-            var scoreDelta = (int)(Math.Round(scoreDeltaDouble, 0, MidpointRounding.AwayFromZero));
-            return Math.Min(BaseRatingChange + scoreDelta, MaximumRatingChange);
+            var result = new Dictionary<Player, GameResult>();
+            foreach (var matchPlayer in matchPlayers)
+                result.Add(matchPlayer.Player, matchPlayer.Team == winnerTeam ? GameResult.Winner : GameResult.Loser);
+            return result;
         }
 
-        private Dictionary<ulong, PlayerRatingChange> GetPlayersChange(Dictionary<Player, GameResult> teams, int scoreDelta)
+        private Dictionary<ulong, PlayerRatingChange> GetPlayersChange12v12(Dictionary<Player, GameResult> teams, int scoreDelta)
         {
             var result = new Dictionary<ulong, PlayerRatingChange>();
             foreach (var playerTeam in teams)
@@ -75,15 +76,78 @@ namespace Server.Services
             return result;
         }
 
-        private Dictionary<Player, GameResult> SplitTeams(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam)
+        #endregion
+
+        #region Overthrow
+
+        private Dictionary<string, List<int>> _scores = new Dictionary<string, List<int>>()
         {
-            var result = new Dictionary<Player, GameResult>();
-            foreach (var matchPlayer in matchPlayers)
-                result.Add(matchPlayer.Player, matchPlayer.Team == winnerTeam ? GameResult.Winner : GameResult.Loser);
+            { "forest_solo", new List<int> { 30, 25, 18, 11, 4, -4, -11, -18, -25, -30 } },
+            { "core_quartet", new List<int> { 30, 18, 6, -6, -18, -30 } },
+            { "desert_duo", new List<int> { 30, 15, 0, -15, -30 } },
+            { "temple_quartet", new List<int> { 30, 10, -10, -30 } },
+            { "mines_trio", new List<int> { 30, 0, -30 } },
+            { "desert_quintet", new List<int> { 30, 0, -30 } },
+            { "desert_octet", new List<int> { 30, 0, -30 } }
+        };
+        public Dictionary<ulong, PlayerRatingChange> RecordRankedMatchOverwatch(IEnumerable<MatchPlayer> matchPlayers, string mapName)
+        {
+            var result = new Dictionary<ulong, PlayerRatingChange>();
+
+            var teams = matchPlayers
+                .GroupBy(t => t.Team)
+                .OrderByDescending(g => g.Sum(p => p.Kills))
+                .ThenBy(g => g.Max(p => p.LastKill))
+                .ToDictionary(g => g.Key, g => g.Select(mp => mp.Player).ToList());
+            var teamScores = teams.Keys
+                .Zip(_scores[mapName], (k, v) => new { k, v })
+                .ToDictionary(x => x.k, x => x.v);
+
+            foreach (var team in teams)
+            {
+                var averageCurrentTeamRating = team.Value
+                    .Average(x => x.PlayerOverthrowRating.FirstOrDefault(p => p.MapName == mapName)?.Rating);
+                var averageOtherTeamRating = teams
+                    .Where(x => x.Key != team.Key)
+                    .SelectMany(t => t.Value)
+                    .Average(x => x.PlayerOverthrowRating.FirstOrDefault(p => p.MapName == mapName)?.Rating);
+
+                var scoreDelta = CalculateScoreDelta(averageCurrentTeamRating ?? PlayerOverthrowRating.DefaultRating,
+                                          averageOtherTeamRating ?? PlayerOverthrowRating.DefaultRating);
+                var ratingChange = teamScores[team.Key] > 0  ? teamScores[team.Key] + scoreDelta : teamScores[team.Key] - scoreDelta;
+
+                GetPlayersChangeOverthrow(team.Value, ratingChange, result, mapName);
+            }
+
             return result;
         }
-    }
 
+        private void GetPlayersChangeOverthrow(List<Player> players, int scoreChange, Dictionary<ulong, PlayerRatingChange> result, string mapName)
+        {
+            foreach (var player in players)
+            {
+                var playerChange = new PlayerRatingChange() { Old = player.PlayerOverthrowRating.FirstOrDefault(x => x.MapName == mapName).Rating };
+                player.PlayerOverthrowRating.FirstOrDefault(x => x.MapName == mapName).Rating += scoreChange;
+                playerChange.New = playerChange.Old + scoreChange;
+                result.Add(player.SteamId, playerChange);
+            }
+        }
+
+        #endregion
+
+
+        private const int MaximumDeltaRatingChange = 25;
+        private int CalculateScoreDelta(double averageWinningRating, double averageLosingRating)
+        {
+            // e.g. -(1900 - 2100) / 40 = 5. Meaning winning team will get 5 more points
+            // than the base as their average was weaker
+            var scoreDeltaDouble = -(averageWinningRating - averageLosingRating) / 40;
+            var scoreDelta = (int)(Math.Round(scoreDeltaDouble, 0, MidpointRounding.AwayFromZero));
+            return Math.Min(scoreDelta, MaximumDeltaRatingChange);
+        }
+
+        
+    }
     public enum GameResult
     {
         Winner,

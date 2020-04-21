@@ -1,5 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Server.Enums;
+using Server.Helpers;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Server.Models
 {
@@ -44,6 +50,13 @@ namespace Server.Models
             builder.Entity<Player>()
                 .Property(s => s.Rating12v12)
                 .HasDefaultValue(Player.DefaultRating);
+
+
+            builder.Entity<Player>()
+                .OwnsMany(p => p.PlayerOverthrowRating, a =>
+                {
+                    a.HasKey("PlayerSteamId", "MapName");
+                });
         }
     }
 }
