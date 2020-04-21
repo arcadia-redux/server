@@ -46,6 +46,6 @@ namespace Server.Models
         public uint Assists { get; set; }
         public uint Level { get; set; }
         [NotMapped]
-        public DateTime LastKill { get; set; }
+        public DateTime? LastKill { get; set; }
     }
 }

@@ -219,7 +219,7 @@ namespace Server.Controllers
 
             var newPlayers = request.Players
                 .Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
-                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = Player.DefaultRating })
+                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = Player.DefaultRating , PlayerOverthrowRating = PlayerOverthrowRating.GetDefaultRatings()})
                 .ToList();
 
             foreach (var playerUpdate in request.Players.Where(p => p.PatreonUpdate != null))
@@ -260,12 +260,14 @@ namespace Server.Controllers
                     Deaths = p.Deaths,
                     Assists = p.Assists,
                     Level = p.Level,
+                    LastKill = p.LastKill,
                 })
                 .ToList();
             _context.AddRange(newPlayers);
             _context.Matches.Add(match);
 
-            var ratingChanges = request.CustomGame == CustomGame.Dota12v12 ? _ratingService.RecordRankedMatch(match.Players, request.Winner) : null;
+            var ratingChanges = request.CustomGame == CustomGame.Dota12v12 ? 
+                _ratingService.RecordRankedMatch12v12(match.Players, request.Winner) : _ratingService.RecordRankedMatchOverwatch(match.Players, request.MapName);
 
             await _context.SaveChangesAsync();
 
@@ -319,7 +321,7 @@ namespace Server.Controllers
             // TODO: We don't store it anymore
             [Required] public List<object> Items { get; set; }
             public PatreonUpdate PatreonUpdate { get; set; }
-            public DateTime LastKill { get; set; }
+            public DateTime? LastKill { get; set; }
         }
 
         public class PatreonUpdate

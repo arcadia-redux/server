@@ -39,7 +39,7 @@ namespace Server.Services
 
         #region 12v12 
         private const int BaseRatingChange12V12 = 30;
-        public Dictionary<ulong, PlayerRatingChange> RecordRankedMatch(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam)
+        public Dictionary<ulong, PlayerRatingChange> RecordRankedMatch12v12(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam)
         {
             var result = new Dictionary<ulong, PlayerRatingChange>();
 
