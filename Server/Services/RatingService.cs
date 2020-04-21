@@ -83,19 +83,20 @@ namespace Server.Services
         public Dictionary<ulong, PlayerRatingChange> RecordRankedMatchOverwatch(IEnumerable<MatchPlayer> matchPlayers, string mapName)
         {
             var result = new Dictionary<ulong, PlayerRatingChange>();
+
             var teams = matchPlayers
                 .GroupBy(t => t.Team)
                 .OrderByDescending(g => g.Sum(p => p.Kills))
                 .ThenBy(g => g.Max(p => p.LastKill))
                 .ToDictionary(g => g.Key, g => g.Select(mp => mp.Player).ToList());
-            var baseScores = _scores[mapName];
-            var teamScores = teams.Keys.Zip(baseScores, (k, v) => new { k, v })
+            var teamScores = teams.Keys
+                .Zip(_scores[mapName], (k, v) => new { k, v })
                 .ToDictionary(x => x.k, x => x.v);
+
             foreach (var team in teams)
             {
                 var averageCurrentTeamRating = team.Value
                     .Average(x => x.PlayerOverthrowRating.FirstOrDefault(p => p.MapName == mapName)?.Rating);
-
                 var averageOtherTeamRating = teams
                     .Where(x => x.Key != team.Key)
                     .SelectMany(t => t.Value)
@@ -104,6 +105,7 @@ namespace Server.Services
                 var scoreDelta = CalculateScoreDelta(averageCurrentTeamRating ?? PlayerOverthrowRating.DefaultRating,
                                           averageOtherTeamRating ?? PlayerOverthrowRating.DefaultRating);
                 var ratingChange = teamScores[team.Key] + scoreDelta;
+
                 GetPlayersChange(team.Value, teamScores[team.Key] > 0 ? ratingChange : -ratingChange, result);
             }
 
@@ -133,12 +135,6 @@ namespace Server.Services
                 result.Add(player.SteamId, playerChange);
             }
         }
-    }
-
-    public enum GameResult
-    {
-        Winner,
-        Loser
     }
 
     public class LeaderboardPlayer
