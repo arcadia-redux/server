@@ -1,16 +1,16 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Server.Models;
 using Server.Services;
 using Stripe;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Logging;
-using System.ComponentModel.DataAnnotations;
 
 namespace Server.Controllers
 {
@@ -36,7 +36,6 @@ namespace Server.Controllers
         public string Url { get; set; }
     }
 
-    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class PaymentController : ControllerBase
@@ -54,6 +53,7 @@ namespace Server.Controllers
             _stripeSignature = configuration["StripeSignature"];
         }
 
+        [Authorize("Lua")]
         [HttpPost]
         [Route("create")]
         public async Task<CreatePaymentResponse> Create([FromBody] CreatePaymentRequest request)
@@ -78,7 +78,6 @@ namespace Server.Controllers
 
         [HttpPost]
         [Route("stripe")]
-        [AllowAnonymous]
         public async Task<ActionResult> Stripe()
         {
             using var bodySteam = new StreamReader(HttpContext.Request.Body);

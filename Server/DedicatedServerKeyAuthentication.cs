@@ -35,22 +35,14 @@ namespace Server
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             if (!Request.Headers.TryGetValue("Dedicated-Server-Key", out var apiKeyHeaderValues))
-            {
                 return Task.FromResult(AuthenticateResult.NoResult());
-            }
 
-            var providedApiKey = apiKeyHeaderValues.FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(providedApiKey))
-            {
+            var key = apiKeyHeaderValues.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(key))
                 return Task.FromResult(AuthenticateResult.NoResult());
-            }
 
-            if (!_dedicatedServerKeys.Contains(providedApiKey))
-            {
-                // TODO: Temporary pass to collect keys
-                // Logger.LogCritical($"Authentication attempt with invalid key: {providedApiKey}");
-                return Task.FromResult(AuthenticateResult.Fail("Invalid Dedicated Server Key provided."));
-            }
+            if (!_dedicatedServerKeys.Contains(key))
+                return Task.FromResult(AuthenticateResult.Fail($"Invalid Dedicated Server Key: {key}"));
 
             var identity = new ClaimsIdentity(Options.AuthenticationType);
             var identities = new List<ClaimsIdentity> { identity };
@@ -59,5 +51,13 @@ namespace Server
 
             return Task.FromResult(AuthenticateResult.Success(ticket));
         }
+    }
+
+    public static class DedicatedServerKeyAuthenticationExtensions
+    {
+        public static AuthenticationBuilder AddDedicatedServerKey(this AuthenticationBuilder builder) =>
+            builder.AddScheme<DedicatedServerKeyAuthenticationOptions, DedicatedServerKeyAuthenticationHandler>(
+                DedicatedServerKeyAuthenticationOptions.DefaultScheme,
+                options => { });
     }
 }

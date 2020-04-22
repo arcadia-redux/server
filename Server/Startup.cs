@@ -35,12 +35,15 @@ namespace Server
                 if (Environment.IsDevelopment()) options.EnableSensitiveDataLogging();
             });
 
-            services.AddAuthentication(options =>
+            services.AddAuthentication()
+                .AddDedicatedServerKey();
+
+            services.AddAuthorization(options =>
             {
-                options.DefaultScheme = DedicatedServerKeyAuthenticationOptions.DefaultScheme;
-                options.DefaultAuthenticateScheme = DedicatedServerKeyAuthenticationOptions.DefaultScheme;
-                options.DefaultChallengeScheme = DedicatedServerKeyAuthenticationOptions.DefaultScheme;
-            }).AddScheme<DedicatedServerKeyAuthenticationOptions, DedicatedServerKeyAuthenticationHandler>(DedicatedServerKeyAuthenticationOptions.DefaultScheme, options => { });
+                options.AddPolicy("Lua", policy => policy
+                    .AddAuthenticationSchemes(DedicatedServerKeyAuthenticationOptions.DefaultScheme)
+                    .RequireAuthenticatedUser());
+            });
 
             services.AddControllers()
                 .AddInvalidModelStateLogging(IsApiRoute);
