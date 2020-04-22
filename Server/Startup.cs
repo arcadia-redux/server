@@ -1,11 +1,11 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Server.Models;
 using Server.Services;
 
@@ -13,13 +13,13 @@ namespace Server
 {
     public class Startup
     {
-        private IHostingEnvironment HostingEnvironment { get; }
         private IConfiguration Configuration { get; }
+        private IWebHostEnvironment Environment { get; }
 
-        public Startup(IHostingEnvironment env, IConfiguration configuration)
+        public Startup(IConfiguration configuration, IWebHostEnvironment environment)
         {
-            HostingEnvironment = env;
             Configuration = configuration;
+            Environment = environment;
         }
 
         private bool IsApiRoute(HttpContext context) => context.Request.Path.StartsWithSegments("/api");
@@ -32,7 +32,7 @@ namespace Server
             services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseNpgsql(Configuration.GetConnectionString("Database"));
-                if (HostingEnvironment.IsDevelopment()) options.EnableSensitiveDataLogging();
+                if (Environment.IsDevelopment()) options.EnableSensitiveDataLogging();
             });
 
             services.AddAuthentication(options =>
