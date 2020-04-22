@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Server.Models;
 using Server.Services;
 
@@ -18,13 +17,11 @@ namespace Server.Controllers
     public class MatchController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly ILogger _logger;
         private readonly RatingService _ratingService;
 
-        public MatchController(AppDbContext context, ILogger<MatchController> logger, RatingService ratingService)
+        public MatchController(AppDbContext context, RatingService ratingService)
         {
             _context = context;
-            _logger = logger;
             _ratingService = ratingService;
         }
 
@@ -32,14 +29,13 @@ namespace Server.Controllers
         [Route("auto-pick")]
         public async Task<ActionResult<AutoPickResponse>> AutoPick(AutoPickRequest request)
         {
-            var realSteamIds = request.Players.Select(ulong.Parse).ToList();
-            var selectedHeroes = request.SelectedHeroes;
+            var requestedSteamIds = request.Players.Select(ulong.Parse).ToList();
             var players = await _context.Players
-                .Where(p => realSteamIds.Contains(p.SteamId))
+                .Where(p => requestedSteamIds.Contains(p.SteamId))
                 .Select(p => new
                 {
-                    SteamId = p.SteamId.ToString(),
-                    HeroesMap = p.Matches
+                    p.SteamId,
+                    HeroesOnMap = p.Matches
                         .Where(m => m.Match.MapName == request.MapName)
                         .OrderByDescending(m => m.MatchId)
                         .Take(100)
@@ -54,7 +50,7 @@ namespace Server.Controllers
                 .ToListAsync();
 
             List<string> GetBestHeroes(List<string> heroes) => heroes
-                .Except(selectedHeroes)
+                .Except(request.SelectedHeroes)
                 .GroupBy(x => x)
                 .OrderByDescending(g => g.Count())
                 .Take(10)
@@ -65,16 +61,13 @@ namespace Server.Controllers
             {
                 Players = players.Select(p =>
                 {
-                    var bestHeroesOnMap = GetBestHeroes(p.HeroesMap);
-                    var bestHeroesGlobal = GetBestHeroes(p.HeroesGlobal);
+                    var heroesOnMap = GetBestHeroes(p.HeroesOnMap);
+                    var heroesGlobal = GetBestHeroes(p.HeroesGlobal);
+                    var heroes = (heroesOnMap.Count() >= 3 ? heroesOnMap : heroesGlobal)
+                        .Take(3)
+                        .ToList();
 
-                    return new AutoPickResponse.Player()
-                    {
-                        SteamId = p.SteamId.ToString(),
-                        Heroes = (bestHeroesOnMap.Count() >= 3 ? bestHeroesOnMap : bestHeroesGlobal)
-                            .Take(3)
-                            .ToList(),
-                    };
+                    return new AutoPickResponse.Player() { SteamId = p.SteamId.ToString(), Heroes = heroes };
                 })
             };
         }
@@ -83,29 +76,27 @@ namespace Server.Controllers
         [Route("before")]
         public async Task<BeforeMatchResponse> Before(BeforeMatchRequest request)
         {
-            var customGame = request.CustomGame.Value;
             var mapName = request.MapName;
 
-            var realSteamIds = request.Players.Select(ulong.Parse).ToList();
+            var requestedSteamIds = request.Players.Select(ulong.Parse).ToList();
             var responses = await _context.Players
-                .Where(p => realSteamIds.Contains(p.SteamId))
+                .Where(p => requestedSteamIds.Contains(p.SteamId))
                 .Select(p => new
                 {
-                    SteamId = p.SteamId.ToString(),
+                    p.SteamId,
                     p.Rating12v12,
-                    Patreon =
-                        new BeforeMatchResponse.Patreon()
-                        {
-                            EndDate = p.PatreonEndDate,
-                            Level = p.PatreonLevel,
-                            EmblemEnabled = p.PatreonEmblemEnabled ?? true,
-                            EmblemColor = p.PatreonEmblemColor ?? "White",
-                            BootsEnabled = p.PatreonBootsEnabled ?? true,
-                            ChatWheelFavorites = p.PatreonChatWheelFavorites ?? new List<int>(),
-                            Cosmetics = p.PatreonCosmetics,
-                        },
+                    Patreon = new BeforeMatchResponse.Patreon()
+                    {
+                        EndDate = p.PatreonEndDate,
+                        Level = p.PatreonLevel,
+                        EmblemEnabled = p.PatreonEmblemEnabled ?? true,
+                        EmblemColor = p.PatreonEmblemColor ?? "White",
+                        BootsEnabled = p.PatreonBootsEnabled ?? true,
+                        ChatWheelFavorites = p.PatreonChatWheelFavorites ?? new List<int>(),
+                        Cosmetics = p.PatreonCosmetics,
+                    },
                     Matches = p.Matches
-                        .Where(m => m.Match.CustomGame == customGame)
+                        .Where(m => m.Match.CustomGame == request.CustomGame)
                         .OrderByDescending(m => m.MatchId)
                         .Select(mp => new
                         {
@@ -119,19 +110,20 @@ namespace Server.Controllers
                         })
                         .ToList()
                 })
+                .AsNoTracking()
                 .ToListAsync();
 
             return new BeforeMatchResponse()
             {
-                Players = request.Players
-                    .Select(id =>
+                Players = requestedSteamIds
+                    .Select(steamId =>
                     {
-                        var response = responses.FirstOrDefault(p => p.SteamId == id);
+                        var response = responses.FirstOrDefault(p => p.SteamId == steamId);
                         if (response == null)
                         {
                             return new BeforeMatchResponse.Player()
                             {
-                                SteamId = id.ToString(),
+                                SteamId = steamId.ToString(),
                                 Patreon = new BeforeMatchResponse.Patreon()
                                 {
                                     Level = 0,
@@ -145,30 +137,19 @@ namespace Server.Controllers
                         }
 
                         if (response.Patreon.EndDate < DateTime.UtcNow)
-                        {
                             response.Patreon.Level = 0;
-                        }
 
                         var matchesOnMap = response.Matches.Where(m => m.MapName == mapName).ToList();
 
                         var player = new BeforeMatchResponse.Player
                         {
-                            SteamId = id.ToString(),
+                            SteamId = steamId.ToString(),
                             Patreon = response.Patreon,
                             Streak = matchesOnMap.TakeWhile(w => w.IsWinner).Count(),
                             BestStreak = matchesOnMap.LongestStreak(w => w.IsWinner),
-                            AverageKills = matchesOnMap
-                                .Select(x => (double)x.Kills)
-                                .DefaultIfEmpty()
-                                .Average(),
-                            AverageDeaths = matchesOnMap
-                                .Select(x => (double)x.Deaths)
-                                .DefaultIfEmpty()
-                                .Average(),
-                            AverageAssists = matchesOnMap
-                                .Select(x => (double)x.Assists)
-                                .DefaultIfEmpty()
-                                .Average(),
+                            AverageKills = matchesOnMap.Select(x => (double)x.Kills).DefaultIfEmpty().Average(),
+                            AverageDeaths = matchesOnMap.Select(x => (double)x.Deaths).DefaultIfEmpty().Average(),
+                            AverageAssists = matchesOnMap.Select(x => (double)x.Assists).DefaultIfEmpty().Average(),
                             Wins = matchesOnMap.Count(w => w.IsWinner),
                             Loses = matchesOnMap.Count(w => !w.IsWinner),
                         };
@@ -186,24 +167,20 @@ namespace Server.Controllers
 
                         var smartRandomHeroesMap = GetSmartRandomHeroes(true);
                         var smartRandomHeroesGlobal = GetSmartRandomHeroes(false);
-
                         var heroes = smartRandomHeroesMap.Count >= 5
                             ? smartRandomHeroesMap
                             : smartRandomHeroesGlobal;
 
                         if (heroes.Count >= 3)
-                        {
                             player.SmartRandomHeroes = heroes;
-                        }
                         else
-                        {
                             player.SmartRandomHeroesError = "no_stats";
-                        }
 
                         return player;
                     })
                     .ToList(),
-                Leaderboard = customGame == CustomGame.Dota12v12 ? await _ratingService.GetLeaderboard() : null,
+
+                Leaderboard = request.CustomGame == CustomGame.Dota12v12 ? await _ratingService.GetLeaderboard() : null,
             };
         }
 
@@ -212,24 +189,18 @@ namespace Server.Controllers
         public async Task<AfterMatchResponse> After([FromBody] AfterMatchRequest request)
         {
             var requestedSteamIds = request.Players.Select(p => ulong.Parse(p.SteamId)).ToList();
-
-            var existingPlayers = await _context.Players
-                .Where(p => requestedSteamIds.Contains(p.SteamId))
-                .ToListAsync();
-
-            var newPlayers = request.Players
-                .Where(r => existingPlayers.All(p => p.SteamId.ToString() != r.SteamId))
-                .Select(p => new Player() { SteamId = ulong.Parse(p.SteamId), Rating12v12 = Player.DefaultRating })
+            var existingPlayers = await _context.Players.Where(p => requestedSteamIds.Contains(p.SteamId)).ToListAsync();
+            var newPlayers = requestedSteamIds
+                .Where(id => existingPlayers.All(p => p.SteamId != id))
+                .Select(id => new Player() { SteamId = id, Rating12v12 = Player.DefaultRating })
                 .ToList();
 
-            foreach (var playerUpdate in request.Players.Where(p => p.PatreonUpdate != null))
-            {
-                var player =
-                    existingPlayers.FirstOrDefault(p => p.SteamId.ToString() == playerUpdate.SteamId) ??
-                    newPlayers.FirstOrDefault(p => p.SteamId.ToString() == playerUpdate.SteamId);
-                // TODO: Shouldn't be the case ever?
-                if (player == null) continue;
+            var allPlayers = existingPlayers.Concat(newPlayers);
 
+            foreach (var playerUpdate in request.Players)
+            {
+                if (playerUpdate.PatreonUpdate == null) continue;
+                var player = allPlayers.Single(p => p.SteamId.ToString() == playerUpdate.SteamId);
                 player.PatreonBootsEnabled = playerUpdate.PatreonUpdate.BootsEnabled;
                 player.PatreonEmblemEnabled = playerUpdate.PatreonUpdate.EmblemEnabled;
                 player.PatreonEmblemColor = playerUpdate.PatreonUpdate.EmblemColor;
@@ -239,7 +210,7 @@ namespace Server.Controllers
 
             var match = new Match
             {
-                CustomGame = request.CustomGame.Value,
+                CustomGame = request.CustomGame,
                 MatchId = request.MatchId,
                 MapName = request.MapName,
                 Winner = request.Winner,
@@ -297,7 +268,7 @@ namespace Server.Controllers
 
     public class AfterMatchRequest
     {
-        [Required] public CustomGame? CustomGame { get; set; }
+        [Required] public CustomGame CustomGame { get; set; }
         [Required] public long MatchId { get; set; }
         [Required] public string MapName { get; set; }
         [Required] public ushort Winner { get; set; }
@@ -363,7 +334,7 @@ namespace Server.Controllers
 
     public class BeforeMatchRequest
     {
-        [Required] public CustomGame? CustomGame { get; set; }
+        [Required] public CustomGame CustomGame { get; set; }
         [Required] public string MapName { get; set; }
         [Required] public List<string> Players { get; set; }
     }
@@ -376,8 +347,8 @@ namespace Server.Controllers
         public class Player
         {
             public string SteamId { get; set; }
-            public List<string> SmartRandomHeroes { get; set; }
-            public string SmartRandomHeroesError { get; set; }
+            public List<string>? SmartRandomHeroes { get; set; }
+            public string? SmartRandomHeroesError { get; set; }
             public int Streak { get; set; }
             public int BestStreak { get; set; }
             public double AverageKills { get; set; }
