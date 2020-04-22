@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -22,6 +22,8 @@ namespace Server
             Configuration = configuration;
         }
 
+        private bool IsApiRoute(HttpContext context) => context.Request.Path.StartsWithSegments("/api");
+
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -40,7 +42,9 @@ namespace Server
                 options.DefaultChallengeScheme = DedicatedServerKeyAuthenticationOptions.DefaultScheme;
             }).AddScheme<DedicatedServerKeyAuthenticationOptions, DedicatedServerKeyAuthenticationHandler>(DedicatedServerKeyAuthenticationOptions.DefaultScheme, options => { });
 
-            services.AddControllers();
+            services.AddControllers()
+                .AddInvalidModelStateLogging(IsApiRoute);
+
             services.AddRazorPages()
                 .AddRazorPagesOptions(o => o.Conventions.ConfigureFilter(new IgnoreAntiforgeryTokenAttribute()));
         }
@@ -50,18 +54,9 @@ namespace Server
         {
             dbContext.Database.Migrate();
 
-            app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"), appBuilder =>
-            {
-                app.UseExceptionHandler(a => a.Run(async context =>
-                {
-                    context.Response.StatusCode = 500;
-                    context.Response.ContentType = "application/json";
-
-                    var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
-                    var exception = exceptionHandlerPathFeature.Error;
-                    await context.Response.WriteAsync($"{exception.GetType().Name}: {exception.Message}");
-                }));
-            });
+            app.UseWhen(IsApiRoute, a => a.UseJsonExceptionHandler());
+            if (Environment.IsDevelopment())
+                app.UseWhen(c => !IsApiRoute(c), a => a.UseDeveloperExceptionPage());
 
             app.UseStaticFiles();
             app.UseRouting();
@@ -74,17 +69,6 @@ namespace Server
                 endpoints.MapControllers();
                 endpoints.MapRazorPages();
             });
-
-            if (HostingEnvironment.IsDevelopment())
-            {
-                app.UseWhen(context => !context.Request.Path.StartsWithSegments("/api"),
-                    appBuilder => { appBuilder.UseDeveloperExceptionPage(); });
-            }
-            else
-            {
-                app.UseHsts();
-                app.UseHttpsRedirection();
-            }
         }
     }
 }
