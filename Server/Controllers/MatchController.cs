@@ -181,6 +181,7 @@ namespace Server.Controllers
                     .ToList(),
 
                 Leaderboard = request.CustomGame == CustomGame.Dota12v12 ? await _ratingService.GetLeaderboard() : null,
+                MapPlayersRating = await _ratingService.GetMapPlayersRating(requestedSteamIds)
             };
         }
 
@@ -343,6 +344,8 @@ namespace Server.Controllers
     {
         public IEnumerable<Player> Players { get; set; }
         public IEnumerable<LeaderboardPlayer> Leaderboard { get; set; }
+
+        public IEnumerable<LeaderboardPlayer> MapPlayersRating { get; set; }
 
         public class Player
         {
