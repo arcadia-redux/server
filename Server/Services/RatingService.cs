@@ -35,17 +35,15 @@ namespace Server.Services
                     .ToListAsync();
             });
 
-        public async Task<List<LeaderboardPlayer>> GetMapPlayersRating(List<ulong> players) =>
+        public async Task<List<PlayerRating>> GetMapPlayersRating(List<ulong> players) =>
             await _cache.GetOrCreateAsync(CacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = _environment.IsProduction() ? TimeSpan.FromMinutes(5) : TimeSpan.FromTicks(1);
-                int rank = 1;
-                return _context.Players
+                return await _context.Players
                     .OrderByDescending(p => p.Rating12v12)
-                    .AsEnumerable()
-                    .Select((p, i) => new LeaderboardPlayer { SteamId = p.SteamId.ToString(), Rating = p.Rating12v12, Rank = i + rank })
-                    .Where(p => players.Contains(Convert.ToUInt64(p.SteamId)))
-                    .ToList();
+                    .Where(p => players.Contains(p.SteamId))
+                    .Select(p => new PlayerRating { SteamId = p.SteamId.ToString(), Rating = p.Rating12v12, Rank = _context.Players.Count(ps => ps.Rating12v12 > p.Rating12v12) + 1 })
+                    .ToListAsync();
             });
 
         public Dictionary<ulong, PlayerRatingChange> RecordRankedMatch(IEnumerable<MatchPlayer> matchPlayers, ushort winnerTeam)
@@ -104,6 +102,12 @@ namespace Server.Services
     }
 
     public class LeaderboardPlayer
+    {
+        public string SteamId { get; set; }
+        public int Rating { get; set; }
+    }
+
+    public class PlayerRating
     {
         public string SteamId { get; set; }
         public int Rank { get; set; }

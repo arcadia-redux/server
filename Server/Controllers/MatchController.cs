@@ -345,7 +345,7 @@ namespace Server.Controllers
         public IEnumerable<Player> Players { get; set; }
         public IEnumerable<LeaderboardPlayer> Leaderboard { get; set; }
 
-        public IEnumerable<LeaderboardPlayer> MapPlayersRating { get; set; }
+        public IEnumerable<PlayerRating> MapPlayersRating { get; set; }
 
         public class Player
         {
