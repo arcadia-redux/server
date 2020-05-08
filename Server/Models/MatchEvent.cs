@@ -15,7 +15,7 @@ namespace Server.Models
 
     public class PaymentUpdateMatchEventBody
     {
-        public string Kind { get => "paymentUpdate"; }
+        public string Kind => "paymentUpdate";
         public string SteamId { get; set; }
         public string PayerSteamId { get; set; }
         public string Error { get; set; }

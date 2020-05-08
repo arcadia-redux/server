@@ -78,9 +78,9 @@ namespace Server.Services
             // 1 AUD = $conversionRate CNY
             var conversionRate = 4.54665;
             // 50 CNY
-            var priceTier1 = (int)Math.Floor((50 / conversionRate) * 100);
+            var priceTier1 = (int)Math.Floor(50 / conversionRate * 100);
             // 200 CNY
-            var priceTier2 = (int)Math.Floor((200 / conversionRate) * 100);
+            var priceTier2 = (int)Math.Floor(200 / conversionRate * 100);
 
             var patreonDaysLeft = player.PatreonEndDate != null ? (player.PatreonEndDate - DateTime.UtcNow).Value.Days : 0;
             var amount = paymentKind switch

@@ -8,9 +8,9 @@ RUN dotnet publish Server.csproj -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libgdiplus libc6-dev \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends libgdiplus libc6-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app .
 EXPOSE 80

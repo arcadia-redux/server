@@ -59,7 +59,7 @@ namespace Server.Controllers
         public async Task<CreatePaymentResponse> Create([FromBody] CreatePaymentRequest request)
         {
             var steamId = ulong.Parse(request.SteamId);
-            ulong payerSteamId = steamId;
+            var payerSteamId = steamId;
             if (request.PayerSteamId != null)
             {
                 payerSteamId = ulong.Parse(request.PayerSteamId);

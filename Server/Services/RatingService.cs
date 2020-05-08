@@ -54,7 +54,7 @@ namespace Server.Services
             // e.g. -(1900 - 2100) / 40 = 5. Meaning winning team will get 5 more points
             // than the base as their average was weaker
             var scoreDeltaDouble = -(averageWinningRating - averageLosingRating) / 40;
-            var scoreDelta = (int)(Math.Round(scoreDeltaDouble, 0, MidpointRounding.AwayFromZero));
+            var scoreDelta = (int)Math.Round(scoreDeltaDouble, 0, MidpointRounding.AwayFromZero);
             return Math.Min(BaseRatingChange + scoreDelta, MaximumRatingChange);
         }
 
