@@ -1,9 +1,11 @@
 @page
 @using System.Net
 @using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Mvc.Rendering
 @using Server.Pages
 @model Server.Pages.SupportersAdminPanelModel
+@attribute [Authorize("Admin")]
 
 @{
     ViewBag.Title = "Supporters Admin Panel";

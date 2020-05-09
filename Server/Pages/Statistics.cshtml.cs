@@ -4,10 +4,8 @@ using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Server.Models;
 
 namespace Server.Pages
@@ -15,18 +13,9 @@ namespace Server.Pages
     public class StatisticsModel : PageModel
     {
         private readonly AppDbContext _context;
-        private readonly string _key;
-
-        public StatisticsModel(AppDbContext context, IConfiguration configuration)
+        public StatisticsModel(AppDbContext context)
         {
             _context = context;
-            _key = configuration["SupportersAdminPanelKey"];
-        }
-
-        public IActionResult OnGet(string key)
-        {
-            if (key != _key) return Unauthorized();
-            return Page();
         }
 
         public async Task<List<HeroEntry>> GetHeroes(CustomGame customGame)

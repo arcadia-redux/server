@@ -1,4 +1,4 @@
-version: '3.3'
+version: "3.3"
 
 volumes:
   pgdata:
@@ -17,9 +17,9 @@ services:
       context: .
       dockerfile: Server/Dockerfile
     ports:
-      - '8000:80'
+      - "8000:80"
     environment:
-      SupportersAdminPanelKey: ${SupportersAdminPanelKey}
+      AdminKey: ${AdminKey}
       DedicatedServerKeys: ${DedicatedServerKeys}
       VIRTUAL_HOST: ${VIRTUAL_HOST}
       StripeApiKey: ${StripeApiKey}

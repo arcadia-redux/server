@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Server.Models;
 
@@ -13,26 +12,16 @@ namespace Server.Pages
     public class SupportersAdminPanelModel : PageModel
     {
         private readonly AppDbContext _context;
-        private readonly string _key;
-
-        public SupportersAdminPanelModel(AppDbContext context, IConfiguration configuration)
+        public SupportersAdminPanelModel(AppDbContext context)
         {
             _context = context;
-            _key = configuration["SupportersAdminPanelKey"];
-        }
-
-        public IActionResult OnGet(string key)
-        {
-            if (key != _key) return Unauthorized();
-            return Page();
         }
 
         [BindProperty]
         public SetPatreonLevelRequest Req { get; set; }
 
-        public IActionResult OnPost(string key)
+        public IActionResult OnPost()
         {
-            if (key != _key) return Unauthorized();
             if (!ModelState.IsValid) return Page();
 
             var player = _context.Players.FirstOrDefault(p => p.SteamId == Req.SteamId);

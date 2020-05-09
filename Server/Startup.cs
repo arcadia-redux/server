@@ -36,12 +36,17 @@ namespace Server
             });
 
             services.AddAuthentication()
-                .AddDedicatedServerKey();
+                .AddDedicatedServerKey()
+                .AddAdminKey();
 
             services.AddAuthorization(options =>
             {
                 options.AddPolicy("Lua", policy => policy
                     .AddAuthenticationSchemes(DedicatedServerKeyAuthenticationOptions.DefaultScheme)
+                    .RequireAuthenticatedUser());
+
+                options.AddPolicy("Admin", policy => policy
+                    .AddAuthenticationSchemes(AdminKeyAuthenticationOptions.DefaultScheme)
                     .RequireAuthenticatedUser());
             });
 

@@ -1,8 +1,10 @@
 @page
 @using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Authorization
 @using Server.Models
 @using Server.Pages
 @model Server.Pages.StatisticsModel
+@attribute [Authorize("Admin")]
 
 <h1>Statistics</h1>
 <div style="display: flex; flex-flow: row;">
