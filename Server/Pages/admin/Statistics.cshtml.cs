@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
@@ -48,11 +47,8 @@ namespace Server.Pages
 
     public class HeroEntry
     {
-        [DisplayName("Hero Name")]
         public string Hero { get; set; }
-        [DisplayName("Win Rate")]
         public double WinRate { get; set; }
-        [DisplayName("Total matches")]
         public int TotalMatches { get; set; }
     }
 }

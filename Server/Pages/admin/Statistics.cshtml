@@ -1,0 +1,35 @@
+@page
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Authorization
+@using Server.Models
+@using Server.Pages
+@model StatisticsModel
+@attribute [Authorize("Admin")]
+
+<h1>Statistics</h1>
+<div style="display: flex; flex-flow: row;">
+@foreach (var customGame in Enum.GetValues(typeof(CustomGame)))
+{
+    <div style="flex: 1">
+        <h2>@Enum.GetName(typeof(CustomGame), customGame)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Hero</th>
+                    <th>Win rate</th>
+                    <th>Total matches</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in await Model.GetHeroes((CustomGame)customGame)) {
+                <tr>
+                    <td>@item.Hero</td>
+                    <td>@item.WinRate%</td>
+                    <td>@Html.DisplayFor(model => item.TotalMatches)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+</div>

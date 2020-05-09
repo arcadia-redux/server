@@ -1,0 +1,46 @@
+@page
+@using System.Net
+@using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Authorization
+@using Server.Pages
+@model SupportersModel
+@attribute [Authorize("Admin")]
+
+@{
+    const string UrlPattern = @"(((?<scheme>http(s)?):\/\/)?([\w-]+?\.\w+)+([a-zA-Z0-9\~\!\@\#\$\%\^\&amp;\*\(\)_\-\=\+\\\/\?\.\:\;\,]*)?)";
+    string Linkify(string str) => Regex.Replace(str, UrlPattern, "<a href=\"$1\" target=\"_blank\">$1</a>");
+}
+
+<h1>Add/update user</h1>
+<form method="post">
+    <input name="steamId" type="number" required placeholder="Steam ID"><br>
+    <input name="level" type="number" required placeholder="New level"><br>
+    <input name="comment" placeholder="Comment"><br>
+    <button>Submit</button>
+</form>
+
+<hr />
+
+<h1>Supporters</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Steam ID</th>
+            <th>Level</th>
+            <th>Comment</th>
+            <th>Ends at</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var supporter in await Model.GetAllSupporters()) {
+        <tr>
+            <td><a href="https://steamcommunity.com/profiles/@supporter.SteamId" target="_blank" rel="noreferrer noopener">@supporter.SteamId</a></td>
+            <td>@supporter.Level</td>
+            <td>@Html.Raw(Linkify(WebUtility.HtmlEncode(supporter.Comment ?? "")))</td>
+            <td>@(supporter.EndDate?.ToString() ?? "(managed manually)")</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+...@(await Model.GetExpiredSupporterCount()) expired supporters
