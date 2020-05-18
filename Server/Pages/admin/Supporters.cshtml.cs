@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,7 @@ namespace Server.Pages
 
         public async Task<IActionResult> OnPost(ulong steamId, ushort level, string comment)
         {
-            if (!ModelState.IsValid) return RedirectToPage();
+            if (!ModelState.IsValid) return BadRequest();
 
             var player = await _context.Players.FindOrCreatePlayer(steamId);
 
@@ -31,7 +32,7 @@ namespace Server.Pages
 
             await _context.SaveChangesAsync();
 
-            return RedirectToPage();
+            return Redirect(Request.GetDisplayUrl());
         }
 
         public async Task<Supporter[]> GetAllSupporters() =>
