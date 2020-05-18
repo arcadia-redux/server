@@ -38,6 +38,16 @@
             <td>@supporter.Level</td>
             <td>@Html.Raw(Linkify(WebUtility.HtmlEncode(supporter.Comment ?? "")))</td>
             <td>@(supporter.EndDate?.ToString() ?? "(managed manually)")</td>
+            @if (supporter.EndDate == null)
+            {
+                <td>
+                    <form method="post" style="margin: auto;">
+                        <input name="steamId" type="hidden" value="@supporter.SteamId">
+                        <input name="level" type="hidden" value="0">
+                        <button>Remove</button>
+                    </form>
+                </td>
+            }
         </tr>
     }
     </tbody>
