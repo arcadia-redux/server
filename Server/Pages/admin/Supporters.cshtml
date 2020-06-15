@@ -54,3 +54,18 @@
 </table>
 
 ...@(await Model.GetExpiredSupporterCount()) expired supporters
+
+<script>
+    function updateSupporter(steamId, level, comment) {
+        if (typeof steamId !== "string") throw new TypeError("'steamId' should be a string");
+        if (typeof level !== "number") throw new TypeError("'level' should be a number");
+
+        let body = `steamId=${encodeURIComponent(steamId)}&level=${encodeURIComponent(level)}`;
+        if (comment !== undefined) {
+            if (typeof comment !== "string") throw new TypeError("'comment' should be a string");
+            body += `&comment=${encodeURIComponent(comment)}`;
+        }
+
+        fetch(location.href, { method: "POST", body, headers: { "content-type": "application/x-www-form-urlencoded" } });
+    }
+</script>
