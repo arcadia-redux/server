@@ -154,6 +154,9 @@ namespace Server.Controllers
                             Loses = matchesOnMap.Count(w => !w.IsWinner),
                         };
 
+                        if (request.CustomGame == CustomGame.Dota12v12)
+                            player.Rating = response.Rating12v12;
+
                         List<string> GetSmartRandomHeroes(bool onMap)
                         {
                             var matches = (onMap ? matchesOnMap : response.Matches).Where(m => m.PickReason == "pick");
@@ -356,6 +359,7 @@ namespace Server.Controllers
             public double AverageAssists { get; set; }
             public int Wins { get; set; }
             public int Loses { get; set; }
+            public int Rating { get; set; } = Models.Player.DefaultRating;
             public Patreon Patreon { get; set; }
         }
 
